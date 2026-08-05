@@ -207,15 +207,15 @@ pub type IndexType = u16;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BaseToken {
-    start: IndexType,
-    end: IndexType,
+    pub start: IndexType,
+    pub end: IndexType,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Token {
-    base: BaseToken,
-    kind: TokenKind,
-    category: TokenCategory,
+    pub base: BaseToken,
+    pub kind: TokenKind,
+    pub category: TokenCategory,
 }
 
 pub fn short_token_type(token_body: &str) -> TokenKind {
