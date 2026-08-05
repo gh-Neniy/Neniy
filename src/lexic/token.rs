@@ -203,7 +203,7 @@ pub enum TokenKind {
     PlusEqualOperator,
 }
 
-pub type IndexType = u16;
+pub type IndexType = u16; // enough for Valter's Going
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct BaseToken {
@@ -218,153 +218,163 @@ pub struct Token {
     pub category: TokenCategory,
 }
 
-pub fn short_token_type(token_body: &str) -> TokenKind {
+impl Token {
+    pub fn new(start: IndexType, end: IndexType, kind: TokenKind, category: TokenCategory) -> Self {
+        Token {
+            base: BaseToken { start, end },
+            kind,
+            category,
+        }
+    }
+}
+
+pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
     // token_body.len() <= 8
 
-    const CARET: u64 = hash("^");
-    const CLOSING_SQUARE_BRACE: u64 = hash("]");
-    const CLOSING_CURLY_BRACE: u64 = hash("}");
-    const COMMA: u64 = hash(",");
-    const EQUAL_OPERATOR: u64 = hash("=");
-    const GREATER_OPERATOR: u64 = hash(">");
-    const LESS_OPERATOR: u64 = hash("<");
-    const OPENING_SQUARE_BRACE: u64 = hash("[");
-    const OPENING_CURLY_BRACE: u64 = hash("{");
-    const TILDA: u64 = hash("~");
+    const CARET: u64 = hash(b"^");
+    const CLOSING_SQUARE_BRACE: u64 = hash(b"]");
+    const CLOSING_CURLY_BRACE: u64 = hash(b"}");
+    const COMMA: u64 = hash(b",");
+    const EQUAL_OPERATOR: u64 = hash(b"=");
+    const GREATER_OPERATOR: u64 = hash(b">");
+    const LESS_OPERATOR: u64 = hash(b"<");
+    const OPENING_SQUARE_BRACE: u64 = hash(b"[");
+    const OPENING_CURLY_BRACE: u64 = hash(b"{");
+    const TILDA: u64 = hash(b"~");
 
-    const ABOUT: u64 = hash("about");
-    const ADD: u64 = hash("add");
-    const ALIGN: u64 = hash("align");
-    const ANCHORED: u64 = hash("anchored");
-    const AS: u64 = hash("as");
-    const AT: u64 = hash("at");
-    const AXIS: u64 = hash("axis");
-    const BLOCK: u64 = hash("block");
-    const BLUE: u64 = hash("blue");
-    const BOLD: u64 = hash("bold");
-    const BOSSBAR: u64 = hash("bossbar");
-    const CAN_GRAB: u64 = hash("can_grab");
-    const CHEST: u64 = hash("chest");
-    const CLEAR: u64 = hash("clear");
-    const CLONE: u64 = hash("clone");
-    const COLOR: u64 = hash("color");
-    const CREATIVE: u64 = hash("creative");
-    const CRIT: u64 = hash("crit");
-    const DAMAGE: u64 = hash("damage");
-    const DARK_RED: u64 = hash("dark_red");
-    const DATA: u64 = hash("data");
-    const DESTROY: u64 = hash("destroy");
-    const DISTANCE: u64 = hash("distance");
-    const DX: u64 = hash("dx");
-    const DY: u64 = hash("dy");
-    const DZ: u64 = hash("dz");
-    const EAST: u64 = hash("east");
-    const EFFECT: u64 = hash("effect");
-    const ENT: u64 = hash("ent");
-    const EX: u64 = hash("ex");
-    const EYES: u64 = hash("eyes");
-    const FACING: u64 = hash("facing");
-    const FEET: u64 = hash("feet");
-    const FILL: u64 = hash("fill");
-    const FORCE: u64 = hash("force");
-    const FN: u64 = hash("fn");
-    const GM: u64 = hash("gm");
-    const GAMERULE: u64 = hash("gamerule");
-    const GET: u64 = hash("get");
-    const GIVE: u64 = hash("give");
-    const GOLD: u64 = hash("gold");
-    const GRAY: u64 = hash("gray");
-    const GREEN: u64 = hash("green");
-    const HALF: u64 = hash("half");
-    const HEAD: u64 = hash("head");
-    const HEALTH: u64 = hash("health");
-    const HEIGHT: u64 = hash("height");
-    const HIDE: u64 = hash("hide");
-    const ID: u64 = hash("id");
-    const IF: u64 = hash("if");
-    const ITALIC: u64 = hash("italic");
-    const ITEM: u64 = hash("item");
-    const ITEMS: u64 = hash("items");
-    const JOIN: u64 = hash("join");
-    const KEEP: u64 = hash("keep");
-    const KILL: u64 = hash("kill");
-    const LEGS: u64 = hash("legs");
-    const LEVEL: u64 = hash("level");
-    const LIMIT: u64 = hash("limit");
-    const LIT: u64 = hash("lit");
-    const LORE: u64 = hash("lore");
-    const MAX: u64 = hash("max");
-    const MASKED: u64 = hash("masked");
-    const MODIFY: u64 = hash("modify");
-    const MOTION: u64 = hash("motion");
-    const MOVE: u64 = hash("move");
-    const NAME: u64 = hash("name");
-    const NATIVE: u64 = hash("native");
-    const NO_AI: u64 = hash("no_ai");
-    const NORMAL: u64 = hash("normal");
-    const NORTH: u64 = hash("north");
-    const OBJ: u64 = hash("obj");
-    const OPEN: u64 = hash("open");
-    const OPR: u64 = hash("opr");
-    const PTC: u64 = hash("ptc");
-    const PLAYERS: u64 = hash("players");
-    const PLS: u64 = hash("pls");
-    const POS: u64 = hash("pos");
-    const POTION: u64 = hash("potion");
-    const POWERED: u64 = hash("powered");
-    const RANGE: u64 = hash("..");
-    const RED: u64 = hash("red");
-    const REMOVE: u64 = hash("remove");
-    const REPLACE: u64 = hash("replace");
-    const RESET: u64 = hash("reset");
-    const ROTATION: u64 = hash("rotation");
-    const RUN: u64 = hash("run");
-    const SAY: u64 = hash("say");
-    const SCALE: u64 = hash("scale");
-    const SCB: u64 = hash("scb");
-    const SCORE: u64 = hash("score");
-    const SET: u64 = hash("set");
-    const SETBLOCK: u64 = hash("setblock");
-    const SHINE: u64 = hash("shine");
-    const SIGN: u64 = hash("sign");
-    const SILENT: u64 = hash("silent");
-    const SIZE: u64 = hash("size");
-    const SORT: u64 = hash("sort");
-    const SOUTH: u64 = hash("south");
-    const SPECTATE: u64 = hash("spectate");
-    const STACK: u64 = hash("stack");
-    const STORAGE: u64 = hash("storage");
-    const STORE: u64 = hash("store");
-    const SUBTITLE: u64 = hash("subtitle");
-    const SM: u64 = hash("sm");
-    const SURVIVAL: u64 = hash("survival");
-    const TAG: u64 = hash("tag");
-    const TEAM: u64 = hash("team");
-    const TELLRAW: u64 = hash("tellraw");
-    const TEXT: u64 = hash("text");
-    const TIME: u64 = hash("time");
-    const TITLE: u64 = hash("title");
-    const TO_COLOR: u64 = hash("to_color");
-    const TP: u64 = hash("tp");
-    const TYPE: u64 = hash("type");
-    const UNINITED: u64 = hash("uninited");
-    const UNLESS: u64 = hash("unless");
-    const WEST: u64 = hash("west");
-    const WIDTH: u64 = hash("width");
-    const YELLOW: u64 = hash("yellow");
+    const ABOUT: u64 = hash(b"about");
+    const ADD: u64 = hash(b"add");
+    const ALIGN: u64 = hash(b"align");
+    const ANCHORED: u64 = hash(b"anchored");
+    const AS: u64 = hash(b"as");
+    const AT: u64 = hash(b"at");
+    const AXIS: u64 = hash(b"axis");
+    const BLOCK: u64 = hash(b"block");
+    const BLUE: u64 = hash(b"blue");
+    const BOLD: u64 = hash(b"bold");
+    const BOSSBAR: u64 = hash(b"bossbar");
+    const CAN_GRAB: u64 = hash(b"can_grab");
+    const CHEST: u64 = hash(b"chest");
+    const CLEAR: u64 = hash(b"clear");
+    const CLONE: u64 = hash(b"clone");
+    const COLOR: u64 = hash(b"color");
+    const CREATIVE: u64 = hash(b"creative");
+    const CRIT: u64 = hash(b"crit");
+    const DAMAGE: u64 = hash(b"damage");
+    const DARK_RED: u64 = hash(b"dark_red");
+    const DATA: u64 = hash(b"data");
+    const DESTROY: u64 = hash(b"destroy");
+    const DISTANCE: u64 = hash(b"distance");
+    const DX: u64 = hash(b"dx");
+    const DY: u64 = hash(b"dy");
+    const DZ: u64 = hash(b"dz");
+    const EAST: u64 = hash(b"east");
+    const EFFECT: u64 = hash(b"effect");
+    const ENT: u64 = hash(b"ent");
+    const EX: u64 = hash(b"ex");
+    const EYES: u64 = hash(b"eyes");
+    const FACING: u64 = hash(b"facing");
+    const FEET: u64 = hash(b"feet");
+    const FILL: u64 = hash(b"fill");
+    const FORCE: u64 = hash(b"force");
+    const FN: u64 = hash(b"fn");
+    const GM: u64 = hash(b"gm");
+    const GAMERULE: u64 = hash(b"gamerule");
+    const GET: u64 = hash(b"get");
+    const GIVE: u64 = hash(b"give");
+    const GOLD: u64 = hash(b"gold");
+    const GRAY: u64 = hash(b"gray");
+    const GREEN: u64 = hash(b"green");
+    const HALF: u64 = hash(b"half");
+    const HEAD: u64 = hash(b"head");
+    const HEALTH: u64 = hash(b"health");
+    const HEIGHT: u64 = hash(b"height");
+    const HIDE: u64 = hash(b"hide");
+    const ID: u64 = hash(b"id");
+    const IF: u64 = hash(b"if");
+    const ITALIC: u64 = hash(b"italic");
+    const ITEM: u64 = hash(b"item");
+    const ITEMS: u64 = hash(b"items");
+    const JOIN: u64 = hash(b"join");
+    const KEEP: u64 = hash(b"keep");
+    const KILL: u64 = hash(b"kill");
+    const LEGS: u64 = hash(b"legs");
+    const LEVEL: u64 = hash(b"level");
+    const LIMIT: u64 = hash(b"limit");
+    const LIT: u64 = hash(b"lit");
+    const LORE: u64 = hash(b"lore");
+    const MAX: u64 = hash(b"max");
+    const MASKED: u64 = hash(b"masked");
+    const MODIFY: u64 = hash(b"modify");
+    const MOTION: u64 = hash(b"motion");
+    const MOVE: u64 = hash(b"move");
+    const NAME: u64 = hash(b"name");
+    const NATIVE: u64 = hash(b"native");
+    const NO_AI: u64 = hash(b"no_ai");
+    const NORMAL: u64 = hash(b"normal");
+    const NORTH: u64 = hash(b"north");
+    const OBJ: u64 = hash(b"obj");
+    const OPEN: u64 = hash(b"open");
+    const OPR: u64 = hash(b"opr");
+    const PTC: u64 = hash(b"ptc");
+    const PLAYERS: u64 = hash(b"players");
+    const PLS: u64 = hash(b"pls");
+    const POS: u64 = hash(b"pos");
+    const POTION: u64 = hash(b"potion");
+    const POWERED: u64 = hash(b"powered");
+    const RANGE: u64 = hash(b"..");
+    const RED: u64 = hash(b"red");
+    const REMOVE: u64 = hash(b"remove");
+    const REPLACE: u64 = hash(b"replace");
+    const RESET: u64 = hash(b"reset");
+    const ROTATION: u64 = hash(b"rotation");
+    const RUN: u64 = hash(b"run");
+    const SAY: u64 = hash(b"say");
+    const SCALE: u64 = hash(b"scale");
+    const SCB: u64 = hash(b"scb");
+    const SCORE: u64 = hash(b"score");
+    const SET: u64 = hash(b"set");
+    const SETBLOCK: u64 = hash(b"setblock");
+    const SHINE: u64 = hash(b"shine");
+    const SIGN: u64 = hash(b"sign");
+    const SILENT: u64 = hash(b"silent");
+    const SIZE: u64 = hash(b"size");
+    const SORT: u64 = hash(b"sort");
+    const SOUTH: u64 = hash(b"south");
+    const SPECTATE: u64 = hash(b"spectate");
+    const STACK: u64 = hash(b"stack");
+    const STORAGE: u64 = hash(b"storage");
+    const STORE: u64 = hash(b"store");
+    const SUBTITLE: u64 = hash(b"subtitle");
+    const SM: u64 = hash(b"sm");
+    const SURVIVAL: u64 = hash(b"survival");
+    const TAG: u64 = hash(b"tag");
+    const TEAM: u64 = hash(b"team");
+    const TELLRAW: u64 = hash(b"tellraw");
+    const TEXT: u64 = hash(b"text");
+    const TIME: u64 = hash(b"time");
+    const TITLE: u64 = hash(b"title");
+    const TO_COLOR: u64 = hash(b"to_color");
+    const TP: u64 = hash(b"tp");
+    const TYPE: u64 = hash(b"type");
+    const UNINITED: u64 = hash(b"uninited");
+    const UNLESS: u64 = hash(b"unless");
+    const WEST: u64 = hash(b"west");
+    const WIDTH: u64 = hash(b"width");
+    const YELLOW: u64 = hash(b"yellow");
 
-    const ALL_PLAYER_SELECTOR: u64 = hash("@a");
-    const ALL_SELECTOR: u64 = hash("@e");
-    const CURRENT_SELECTOR: u64 = hash("@s");
-    const NEAREST_PLAYER_SELECTOR: u64 = hash("@p");
-    const RANDOM_PLAYER_SELECTOR: u64 = hash("@r");
+    const ALL_PLAYER_SELECTOR: u64 = hash(b"@a");
+    const ALL_SELECTOR: u64 = hash(b"@e");
+    const CURRENT_SELECTOR: u64 = hash(b"@s");
+    const NEAREST_PLAYER_SELECTOR: u64 = hash(b"@p");
+    const RANDOM_PLAYER_SELECTOR: u64 = hash(b"@r");
 
-    const DIVIDE_EQUAL_OPERATOR: u64 = hash("/=");
-    const GREATER_OR_EQUAL_OPERATOR: u64 = hash(">=");
-    const LESS_OR_EQUAL_OPERATOR: u64 = hash("<=");
-    const MINUS_EQUAL_OPERATOR: u64 = hash("-=");
-    const MULT_EQUAL_OPERATOR: u64 = hash("*=");
-    const PLUS_EQUAL_OPERATOR: u64 = hash("+=");
+    const DIVIDE_EQUAL_OPERATOR: u64 = hash(b"/=");
+    const GREATER_OR_EQUAL_OPERATOR: u64 = hash(b">=");
+    const LESS_OR_EQUAL_OPERATOR: u64 = hash(b"<=");
+    const MINUS_EQUAL_OPERATOR: u64 = hash(b"-=");
+    const MULT_EQUAL_OPERATOR: u64 = hash(b"*=");
+    const PLUS_EQUAL_OPERATOR: u64 = hash(b"+=");
 
     match hash(token_body) {
         CARET => TokenKind::Caret,
@@ -516,35 +526,33 @@ pub fn short_token_type(token_body: &str) -> TokenKind {
     }
 }
 
-pub fn long_token_type(token_body: &str) -> TokenKind {
+pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
     match LONG_TOKEN_TYPE.binary_search_by_key(&token_body, |item| item.str_token) {
         Ok(index) => LONG_TOKEN_TYPE[index].kind,
         Err(_) => TokenKind::Identifier,
     }
 }
 
-const fn hash(token_body: &str) -> u64 {
-    let bytes = token_body.as_bytes();
-    let mut arr = [0u8; 8];
-
+const fn hash(token_body: &[u8]) -> u64 {
+    let mut bytes = [0u8; 8];
     let mut i = 0;
 
-    while i < bytes.len() {
-        arr[i] = bytes[i];
+    while i < token_body.len() {
+        bytes[i] = token_body[i];
         i += 1;
     }
 
-    u64::from_ne_bytes(arr)
+    u64::from_ne_bytes(bytes)
 }
 
 #[derive(Debug, PartialEq, Eq)]
 struct StrTokenAndTokenKind<'a> {
-    str_token: &'a str,
+    str_token: &'a [u8],
     kind: TokenKind,
 }
 
 impl<'a> StrTokenAndTokenKind<'a> {
-    pub const fn new(str_token: &'a str, kind: TokenKind) -> Self {
+    pub const fn new(str_token: &'a [u8], kind: TokenKind) -> Self {
         Self { str_token, kind }
     }
 }
@@ -557,48 +565,48 @@ impl<'a> PartialOrd for StrTokenAndTokenKind<'a> {
 
 impl<'a> Ord for StrTokenAndTokenKind<'a> {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.str_token.cmp(&other.str_token)
+        self.str_token.cmp(other.str_token)
     }
 }
 
 const LONG_TOKEN_TYPE: [StrTokenAndTokenKind; 39] = [
-    StrTokenAndTokenKind::new("advancement", TokenKind::Advancement),
-    StrTokenAndTokenKind::new("adventure", TokenKind::Adventure),
-    StrTokenAndTokenKind::new("attack_damage", TokenKind::AttackDamage),
-    StrTokenAndTokenKind::new("attack_speed", TokenKind::AttackSpeed),
-    StrTokenAndTokenKind::new("attribute", TokenKind::Attribute),
-    StrTokenAndTokenKind::new("can_place_on", TokenKind::CanPlaceOn),
-    StrTokenAndTokenKind::new("chest_chance", TokenKind::ChestChance),
-    StrTokenAndTokenKind::new("dark_blue", TokenKind::DarkBlue),
-    StrTokenAndTokenKind::new("dark_green", TokenKind::DarkGreen),
-    StrTokenAndTokenKind::new("enchantments", TokenKind::Enchantments),
-    StrTokenAndTokenKind::new("feet_chance", TokenKind::FeetChance),
-    StrTokenAndTokenKind::new("from_color", TokenKind::FromColor),
-    StrTokenAndTokenKind::new("head_chance", TokenKind::HeadChance),
-    StrTokenAndTokenKind::new("hieroglyph", TokenKind::Hieroglyph),
-    StrTokenAndTokenKind::new("hurt_time", TokenKind::HurtTime),
-    StrTokenAndTokenKind::new("in_ground", TokenKind::InGround),
-    StrTokenAndTokenKind::new("interaction", TokenKind::Interaction),
-    StrTokenAndTokenKind::new("invisible", TokenKind::Invisible),
-    StrTokenAndTokenKind::new("invulnerable", TokenKind::Invulnerable),
-    StrTokenAndTokenKind::new("left_hand", TokenKind::LeftHand),
-    StrTokenAndTokenKind::new("left_hand_chance", TokenKind::LeftHandChance),
-    StrTokenAndTokenKind::new("legs_chance", TokenKind::LegsChance),
-    StrTokenAndTokenKind::new("loot_table", TokenKind::LootTable),
-    StrTokenAndTokenKind::new("name_visible", TokenKind::NameVisible),
-    StrTokenAndTokenKind::new("no_despawn", TokenKind::NoDespawn),
-    StrTokenAndTokenKind::new("no_gravity", TokenKind::NoGravity),
-    StrTokenAndTokenKind::new("pickup_delay", TokenKind::PickupDelay),
-    StrTokenAndTokenKind::new("potion_color", TokenKind::PotionColor),
-    StrTokenAndTokenKind::new("right_hand", TokenKind::RightHand),
-    StrTokenAndTokenKind::new("right_hand_chance", TokenKind::RightHandChance),
-    StrTokenAndTokenKind::new("selected_item", TokenKind::SelectedItem),
-    StrTokenAndTokenKind::new("spawnpoint", TokenKind::Spawnpoint),
-    StrTokenAndTokenKind::new("spectator", TokenKind::Spectator),
-    StrTokenAndTokenKind::new("stability", TokenKind::Stability),
-    StrTokenAndTokenKind::new("stopsound", TokenKind::Stopsound),
-    StrTokenAndTokenKind::new("teleport_duration", TokenKind::TeleportDuration),
-    StrTokenAndTokenKind::new("unbreakable", TokenKind::Unbreakable),
-    StrTokenAndTokenKind::new("x_rotation", TokenKind::XRotation),
-    StrTokenAndTokenKind::new("y_rotation", TokenKind::YRotation),
+    StrTokenAndTokenKind::new(b"advancement", TokenKind::Advancement),
+    StrTokenAndTokenKind::new(b"adventure", TokenKind::Adventure),
+    StrTokenAndTokenKind::new(b"attack_damage", TokenKind::AttackDamage),
+    StrTokenAndTokenKind::new(b"attack_speed", TokenKind::AttackSpeed),
+    StrTokenAndTokenKind::new(b"attribute", TokenKind::Attribute),
+    StrTokenAndTokenKind::new(b"can_place_on", TokenKind::CanPlaceOn),
+    StrTokenAndTokenKind::new(b"chest_chance", TokenKind::ChestChance),
+    StrTokenAndTokenKind::new(b"dark_blue", TokenKind::DarkBlue),
+    StrTokenAndTokenKind::new(b"dark_green", TokenKind::DarkGreen),
+    StrTokenAndTokenKind::new(b"enchantments", TokenKind::Enchantments),
+    StrTokenAndTokenKind::new(b"feet_chance", TokenKind::FeetChance),
+    StrTokenAndTokenKind::new(b"from_color", TokenKind::FromColor),
+    StrTokenAndTokenKind::new(b"head_chance", TokenKind::HeadChance),
+    StrTokenAndTokenKind::new(b"hieroglyph", TokenKind::Hieroglyph),
+    StrTokenAndTokenKind::new(b"hurt_time", TokenKind::HurtTime),
+    StrTokenAndTokenKind::new(b"in_ground", TokenKind::InGround),
+    StrTokenAndTokenKind::new(b"interaction", TokenKind::Interaction),
+    StrTokenAndTokenKind::new(b"invisible", TokenKind::Invisible),
+    StrTokenAndTokenKind::new(b"invulnerable", TokenKind::Invulnerable),
+    StrTokenAndTokenKind::new(b"left_hand", TokenKind::LeftHand),
+    StrTokenAndTokenKind::new(b"left_hand_chance", TokenKind::LeftHandChance),
+    StrTokenAndTokenKind::new(b"legs_chance", TokenKind::LegsChance),
+    StrTokenAndTokenKind::new(b"loot_table", TokenKind::LootTable),
+    StrTokenAndTokenKind::new(b"name_visible", TokenKind::NameVisible),
+    StrTokenAndTokenKind::new(b"no_despawn", TokenKind::NoDespawn),
+    StrTokenAndTokenKind::new(b"no_gravity", TokenKind::NoGravity),
+    StrTokenAndTokenKind::new(b"pickup_delay", TokenKind::PickupDelay),
+    StrTokenAndTokenKind::new(b"potion_color", TokenKind::PotionColor),
+    StrTokenAndTokenKind::new(b"right_hand", TokenKind::RightHand),
+    StrTokenAndTokenKind::new(b"right_hand_chance", TokenKind::RightHandChance),
+    StrTokenAndTokenKind::new(b"selected_item", TokenKind::SelectedItem),
+    StrTokenAndTokenKind::new(b"spawnpoint", TokenKind::Spawnpoint),
+    StrTokenAndTokenKind::new(b"spectator", TokenKind::Spectator),
+    StrTokenAndTokenKind::new(b"stability", TokenKind::Stability),
+    StrTokenAndTokenKind::new(b"stopsound", TokenKind::Stopsound),
+    StrTokenAndTokenKind::new(b"teleport_duration", TokenKind::TeleportDuration),
+    StrTokenAndTokenKind::new(b"unbreakable", TokenKind::Unbreakable),
+    StrTokenAndTokenKind::new(b"x_rotation", TokenKind::XRotation),
+    StrTokenAndTokenKind::new(b"y_rotation", TokenKind::YRotation),
 ];

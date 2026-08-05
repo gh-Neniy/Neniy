@@ -1,12 +1,15 @@
 use super::capture_token;
 use super::categorize;
 use super::token::Token;
+use crate::NeniyError;
 
-fn lexic_parse(source_code: &[u8]) -> Vec<Token> {
+fn lexic_parse(source_code: &[u8]) -> Result<Vec<Token>, NeniyError> {
     let mut tokens = Vec::with_capacity(source_code.len() / 4);
+    let mut i = 0;
 
-    for mut i in 0..source_code.len() {
+    while i < source_code.len() {
         if source_code[i].is_ascii_whitespace() {
+            i += 1;
             continue;
         }
 
@@ -15,6 +18,7 @@ fn lexic_parse(source_code: &[u8]) -> Vec<Token> {
                 i += 1;
             }
 
+            i += 1;
             continue;
         }
 
@@ -22,9 +26,10 @@ fn lexic_parse(source_code: &[u8]) -> Vec<Token> {
             source_code,
             categorize::categorize(source_code[i]),
             i,
-        ));
-        i = tokens.last().unwrap().base.end;
+        )?);
+
+        i = tokens.last().unwrap().base.end as usize + 1;
     }
 
-    tokens
+    Ok(tokens)
 }
