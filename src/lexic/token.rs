@@ -205,13 +205,23 @@ pub enum TokenKind {
 
 pub type IndexType = u16; // enough for Valter's Going
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct BaseToken {
     pub start: IndexType,
     pub end: IndexType,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+impl BaseToken {
+    pub fn new_empty() -> Self {
+        BaseToken { start: 1, end: 0 }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.start == 1 && self.end == 0
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub struct Token {
     pub base: BaseToken,
     pub kind: TokenKind,

@@ -1,15 +1,15 @@
 use super::token::TokenCategory;
 
 fn is_control(c: u8) -> bool {
-    c == b',' || c == b'[' || c == b']' || c == b'{' || c == b'}'
+    matches!(c, b',' | b'[' | b']' | b'{' | b'}')
 }
 
 fn is_operator(c: u8) -> bool {
-    c == b'+' || c == b'-' || c == b'*' || c == b'/' || c == b'<' || c == b'=' || c == b'>'
+    matches!(c, b'+' | b'-' | b'*' | b'/' | b'<' | b'=' | b'>')
 }
 
 fn is_special(c: u8) -> bool {
-    c == b'.' || c == b'~' || c == b'^'
+    matches!(c, b'.' | b'~' | b'^')
 }
 
 pub fn categorize(c: u8) -> TokenCategory {
