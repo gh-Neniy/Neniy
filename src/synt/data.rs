@@ -108,12 +108,7 @@ fn capture_lore(state: &mut State) -> Result<Vec<Text>, NeniyError> {
 
         if !aux::valid_text(state[0]) {
             return Err(NeniyError::Syntax(
-                [
-                    "invalid text bound ",
-                    str::from_utf8(state.extract(0)).unwrap(),
-                    " in lore",
-                ]
-                .concat(),
+                ["invalid text bound ", state.extract(0), " in lore"].concat(),
             ));
         }
 
@@ -271,12 +266,7 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit, NeniyError> {
         TokenKind::Width => capture_numeric_item(state),
 
         _ => Err(NeniyError::Syntax(
-            [
-                "unknown key ",
-                str::from_utf8(state.extract(0)).unwrap(),
-                " in data unit",
-            ]
-            .concat(),
+            ["unknown key ", state.extract(0), " in data unit"].concat(),
         )),
     }
 }

@@ -27,17 +27,17 @@ impl<'a> State<'a> {
         self.pos + offset >= self.tokens.len() as IndexType
     }
 
-    pub fn extract(&self, offset: IndexType) -> &[u8] {
+    pub fn extract(&self, offset: IndexType) -> &str {
         let token = &self.tokens[(self.pos + offset) as usize].base;
 
-        &self.source_code[token.start as usize..=token.end as usize]
+        str::from_utf8(&self.source_code[token.start as usize..=token.end as usize]).unwrap()
     }
 
-    pub fn extract_segment(&self, i1: IndexType, i2: IndexType) -> &[u8] {
+    pub fn extract_segment(&self, i1: IndexType, i2: IndexType) -> &str {
         let start = self.tokens[(self.pos + i1) as usize].base.start as usize;
         let end = self.tokens[(self.pos + i2) as usize].base.end as usize;
 
-        &self.source_code[start..=end]
+        str::from_utf8(&self.source_code[start..=end]).unwrap()
     }
 }
 
@@ -72,11 +72,7 @@ pub fn capture_range(state: &mut State) -> Result<BaseToken, NeniyError> {
 
         if !consecutive(state[0], state[1]) {
             return Err(NeniyError::Syntax(
-                [
-                    "invalid range",
-                    str::from_utf8(state.extract_segment(0, 1)).unwrap(),
-                ]
-                .concat(),
+                ["invalid range", state.extract_segment(0, 1)].concat(),
             ));
         }
 
@@ -118,7 +114,7 @@ pub fn check_token(
                 "invalid",
                 token_name,
                 " ",
-                str::from_utf8(state.extract(0)).unwrap(),
+                state.extract(0),
                 " in ",
                 command,
             ]
@@ -146,13 +142,7 @@ pub fn unit_check(
     }
     if !valid_value(state[2]) {
         return Err(NeniyError::Syntax(
-            [
-                "invalid value ",
-                str::from_utf8(state.extract(2)).unwrap(),
-                " for ",
-                unit_name,
-            ]
-            .concat(),
+            ["invalid value ", state.extract(2), " for ", unit_name].concat(),
         ));
     }
 
@@ -237,12 +227,7 @@ pub fn capture_list(state: &mut State) -> Result<ListType, NeniyError> {
 
         if !valid_identifier(state[0]) {
             return Err(NeniyError::Syntax(
-                [
-                    "invalid key ",
-                    str::from_utf8(state.extract(0)).unwrap(),
-                    " in list",
-                ]
-                .concat(),
+                ["invalid key ", state.extract(0), " in list"].concat(),
             ));
         }
 
@@ -267,11 +252,7 @@ fn capture_range_impl(state: &mut State) -> Result<IndexType, NeniyError> {
 
     if !consecutive(state[0], state[1]) {
         return Err(NeniyError::Syntax(
-            [
-                "invalid range ",
-                str::from_utf8(state.extract_segment(0, 1)).unwrap(),
-            ]
-            .concat(),
+            ["invalid range ", state.extract_segment(0, 1)].concat(),
         ));
     }
 

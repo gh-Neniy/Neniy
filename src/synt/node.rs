@@ -2,123 +2,59 @@ use crate::lexic::token::BaseToken;
 
 use super::{aux::ListType, data::IdWithDataPtr, selector::Selector, text::Text};
 
-pub enum NodeKind {
-    Base,
-    DoubleSelector,
-    Execute,
-    IdWithDataPtr,
-    Selector,
-    SelectorIdWithDataPtr,
-    SelectorListType,
-    SelectorText,
-    Text,
-}
+pub enum Node {
+    Base {
+        args: Vec<BaseToken>,
+    }, // 24 bytes
 
-pub enum CommandKind {
-    Advancement,
-    Attribute,
-    BossbarAdd,
-    BossbarSet,
-    BossbarRemove,
-    Clear,
-    Clone,
-    Damage,
-    DataGet,
-    DataModify,
-    Effect,
-    Execute,
-    ExecuteAlign,
-    ExecuteAnchored,
-    ExecuteAs,
-    ExecuteAt,
-    ExecuteFacing,
-    ExecutePositioned,
-    ExecuteStoreBossbar,
-    ExecuteStoreEntity,
-    ExecuteStoreScore,
-    ExecuteStoreStorage,
-    ExecuteUninited,
-    ExecuteBlock,
-    ExecuteEntity,
-    ExecuteItemsBlock,
-    ExecuteItemsEntity,
-    ExecuteScore,
-    Fill,
-    Function,
-    Gamemode,
-    Gamerule,
-    Give,
-    Kill,
-    Native,
-    Particle,
-    Playsound,
-    Say,
-    ScoreboardObjectivesAdd,
-    ScoreboardObjectivesSet,
-    ScoreboardPlayers,
-    Setblock,
-    Spawnpoint,
-    Spectate,
-    Stopsound,
-    Summon,
-    Tag,
-    TeamAdd,
-    TeamJoin,
-    TeamModify,
-    Tellraw,
-    Time,
-    Title,
-    Tp,
-}
+    DoubleSelector(Box<DoubleSelectorNode>), // 8 bytes (instead of 88)
 
-pub struct Node {
-    args: Vec<BaseToken>,
-}
+    Execute {
+        args: Vec<BaseToken>,
+        subnodes: Vec<Node>,
+        run_node: Box<Node>,
+    }, // 56 bytes
 
-pub struct SelectorNode {
-    node: Node,
-    selector: Selector,
+    IdWithDataPtr {
+        args: Vec<BaseToken>,
+        id_with_data_ptr: IdWithDataPtr,
+    }, // 32 bytes
+
+    Selector {
+        args: Vec<BaseToken>,
+        selector: Selector,
+    }, // 56 bytes
+
+    SelectorIdWithDataPtr(Box<SelectorIdWithDataPtrNode>), // 8 bytes (instead of 64)
+    SelectorListType(Box<SelectorListTypeNode>),           // 8 bytes (instead of 80)
+    SelectorText(Box<SelectorTextNode>),                   // 8 bytes (instead of 80)
+
+    Text {
+        args: Vec<BaseToken>,
+        text: Text,
+    }, // 48 bytes
 }
 
 pub struct DoubleSelectorNode {
-    node: Node,
-    selector1: Selector,
-    selector2: Selector,
-}
-
-pub struct IdWithDataPtrNode {
-    node: Node,
-    id_with_data_ptr: IdWithDataPtr,
-}
-
-pub struct TextNode {
-    node: Node,
-    text: Text,
+    pub args: Vec<BaseToken>,
+    pub selector1: Selector,
+    pub selector2: Selector,
 }
 
 pub struct SelectorIdWithDataPtrNode {
-    node: Node,
-    selector: Selector,
-    id_with_data_ptr: IdWithDataPtr,
+    pub args: Vec<BaseToken>,
+    pub selector: Selector,
+    pub id_with_data_ptr: IdWithDataPtr,
 }
 
 pub struct SelectorListTypeNode {
-    node: Node,
-    selector: Selector,
-    list: ListType,
+    pub args: Vec<BaseToken>,
+    pub selector: Selector,
+    pub list: ListType,
 }
 
 pub struct SelectorTextNode {
-    node: Node,
-    selector: Selector,
-    text: Text,
+    pub args: Vec<BaseToken>,
+    pub selector: Selector,
+    pub text: Text,
 }
-
-pub struct ExecuteNode {
-    node: Node,
-    subnodes: NodePtrs,
-    run_node: NodePtr,
-}
-
-pub type NodePtr = Box<Node>;
-pub type NodePtrs = Vec<NodePtr>;

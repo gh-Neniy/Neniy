@@ -73,12 +73,7 @@ pub fn parse_text(state: &mut State) -> Result<Text, NeniyError> {
             }
         } else {
             return Err(NeniyError::Syntax(
-                [
-                    "invalid token ",
-                    str::from_utf8(state.extract(0)).unwrap(),
-                    " instead of '{'",
-                ]
-                .concat(),
+                ["invalid token ", state.extract(0), " instead of '{'"].concat(),
             ));
         }
 
@@ -132,12 +127,7 @@ fn capture_text_unit(state: &mut State) -> Result<TextUnit, NeniyError> {
             TokenKind::Text => unit.source = capture_source(state)?,
             _ => {
                 return Err(NeniyError::Syntax(
-                    [
-                        "unknown key ",
-                        str::from_utf8(state.extract(0)).unwrap(),
-                        " in text",
-                    ]
-                    .concat(),
+                    ["unknown key ", state.extract(0), " in text"].concat(),
                 ));
             }
         };

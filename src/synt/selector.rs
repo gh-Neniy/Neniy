@@ -27,8 +27,8 @@ impl SelectorUnit {
 }
 
 pub struct Selector {
-    stem: Token,
-    units: Vec<SelectorUnit>,
+    pub stem: Token,
+    pub units: Vec<SelectorUnit>,
 }
 
 pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector, NeniyError> {
@@ -135,12 +135,7 @@ fn capture_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
         TokenKind::XRotation | TokenKind::YRotation => capture_range_item(state),
 
         _ => Err(NeniyError::Syntax(
-            [
-                "unknown key ",
-                str::from_utf8(state.extract(0)).unwrap(),
-                " in selector unit",
-            ]
-            .concat(),
+            ["unknown key ", state.extract(0), " in selector unit"].concat(),
         )),
     }
 }
@@ -168,7 +163,7 @@ fn have_next_text_block(state: &mut State) -> Result<bool, NeniyError> {
         return Err(NeniyError::Syntax(
             [
                 "invalid square brace sequence: ",
-                str::from_utf8(state.extract_segment(0, offset - 1)).unwrap(),
+                state.extract_segment(0, offset - 1),
             ]
             .concat(),
         ));
