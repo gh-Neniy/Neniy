@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    NeniyError,
+    NeniyError, Result,
     lexic::token::{BaseToken, IndexType, Token, TokenCategory, TokenKind},
 };
 
@@ -62,7 +62,7 @@ pub struct ListUnit {
 
 pub type ListType = Vec<ListUnit>;
 
-pub fn capture_range(state: &mut State) -> Result<BaseToken, NeniyError> {
+pub fn capture_range(state: &mut State) -> Result<BaseToken> {
     let mut range = state[0].base;
 
     if valid_numeric(state[0]) {
@@ -88,7 +88,7 @@ pub fn check_presence(
     offset: IndexType,
     token_name: &str,
     command: &str,
-) -> Result<(), NeniyError> {
+) -> Result<()> {
     if state.exceed(offset) {
         return Err(NeniyError::Syntax(
             [token_name, " not found for ", command].concat(),
@@ -105,7 +105,7 @@ pub fn check_token(
     token_name: &str,
     command: &str,
     valid_token: fn(Token) -> bool,
-) -> Result<(), NeniyError> {
+) -> Result<()> {
     check_presence(state, offset, token_name, command)?;
 
     if !valid_token(state[0]) {
@@ -129,7 +129,7 @@ pub fn unit_check(
     state: &mut State,
     unit_name: &str,
     valid_value: fn(Token) -> bool,
-) -> Result<(), NeniyError> {
+) -> Result<()> {
     if state.exceed(2) {
         return Err(NeniyError::Syntax(
             ["not enough tokens for ", unit_name].concat(),
@@ -205,7 +205,7 @@ pub fn valid_value(token: Token) -> bool {
 }
 
 // state[0] == '['
-pub fn capture_list(state: &mut State) -> Result<ListType, NeniyError> {
+pub fn capture_list(state: &mut State) -> Result<ListType> {
     let mut list = ListType::new();
 
     *state += 1;
@@ -245,7 +245,7 @@ pub fn capture_list(state: &mut State) -> Result<ListType, NeniyError> {
     Ok(list)
 }
 
-fn capture_range_impl(state: &mut State) -> Result<IndexType, NeniyError> {
+fn capture_range_impl(state: &mut State) -> Result<IndexType> {
     if state.exceed(1) || !valid_numeric(state[1]) {
         return Ok(state[0].base.end);
     }
@@ -261,7 +261,7 @@ fn capture_range_impl(state: &mut State) -> Result<IndexType, NeniyError> {
     Ok(state[0].base.end)
 }
 
-fn capture_list_item(state: &mut State) -> Result<ListUnit, NeniyError> {
+fn capture_list_item(state: &mut State) -> Result<ListUnit> {
     if state.exceed(1) || state[1].kind != TokenKind::EqualOperator {
         return Ok(ListUnit {
             key: state[0].base,

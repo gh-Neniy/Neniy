@@ -15,3 +15,5 @@ pub enum NeniyError {
     #[error("Translation error - {0}")]
     Translation(String),
 }
+
+pub type Result<T> = std::result::Result<T, NeniyError>;

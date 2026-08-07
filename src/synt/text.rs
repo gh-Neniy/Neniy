@@ -1,8 +1,6 @@
-use std::str;
-
 use super::aux::{self, State};
 use crate::{
-    NeniyError,
+    NeniyError, Result,
     lexic::token::{BaseToken, TokenKind},
 };
 
@@ -45,7 +43,7 @@ impl Text {
 }
 
 // state[0] == '{' or '['
-pub fn parse_text(state: &mut State) -> Result<Text, NeniyError> {
+pub fn parse_text(state: &mut State) -> Result<Text> {
     if state[0].kind == TokenKind::OpeningCurlyBrace {
         let unit = capture_text_unit(state)?;
 
@@ -89,13 +87,13 @@ pub fn parse_text(state: &mut State) -> Result<Text, NeniyError> {
     Ok(text)
 }
 
-fn capture_color(state: &mut State) -> Result<BaseToken, NeniyError> {
+fn capture_color(state: &mut State) -> Result<BaseToken> {
     aux::unit_check(state, "color in text unit", aux::valid_identifier)?;
 
     Ok(state[0].base)
 }
 
-fn capture_source(state: &mut State) -> Result<BaseToken, NeniyError> {
+fn capture_source(state: &mut State) -> Result<BaseToken> {
     aux::unit_check(state, "source in text unit", aux::valid_string)?;
 
     // text assumed to be in quotations
@@ -106,7 +104,7 @@ fn capture_source(state: &mut State) -> Result<BaseToken, NeniyError> {
 }
 
 // state[0] == '{'
-fn capture_text_unit(state: &mut State) -> Result<TextUnit, NeniyError> {
+fn capture_text_unit(state: &mut State) -> Result<TextUnit> {
     let mut unit = TextUnit::new(
         BaseToken::new_empty(),
         BaseToken::new_empty(),

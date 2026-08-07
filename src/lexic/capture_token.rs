@@ -1,11 +1,11 @@
 use super::token::{self, IndexType, Token, TokenCategory, TokenKind};
-use crate::NeniyError;
+use crate::{NeniyError, Result};
 
 pub fn capture_token(
     source_code: &[u8],
     category: TokenCategory,
     start_pos: usize,
-) -> Result<Token, NeniyError> {
+) -> Result<Token> {
     if matches!(
         category,
         TokenCategory::Selector
@@ -23,7 +23,7 @@ fn capture_short_token(
     source_code: &[u8],
     category: TokenCategory,
     start_pos: usize,
-) -> Result<Token, NeniyError> {
+) -> Result<Token> {
     let start = start_pos as IndexType;
 
     match category {
@@ -58,7 +58,7 @@ fn capture_operator(source_code: &[u8], start_pos: usize) -> Token {
     )
 }
 
-fn capture_selector(source_code: &[u8], start_pos: usize) -> Result<Token, NeniyError> {
+fn capture_selector(source_code: &[u8], start_pos: usize) -> Result<Token> {
     if start_pos + 1 == source_code.len() {
         return Err(NeniyError::Lexic("@ instead of selector".to_string()));
     }
@@ -71,7 +71,7 @@ fn capture_selector(source_code: &[u8], start_pos: usize) -> Result<Token, Neniy
     ))
 }
 
-fn capture_special(source_code: &[u8], start_pos: usize) -> Result<Token, NeniyError> {
+fn capture_special(source_code: &[u8], start_pos: usize) -> Result<Token> {
     let mut offset = 0;
 
     if source_code[start_pos] == b'.' {
@@ -136,7 +136,7 @@ fn capture_long_token(
     source_code: &[u8],
     mut category: TokenCategory,
     start_pos: usize,
-) -> Result<Token, NeniyError> {
+) -> Result<Token> {
     let start = start_pos as IndexType;
 
     if source_code[start_pos] == b'-'

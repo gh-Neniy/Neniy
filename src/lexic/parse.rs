@@ -1,9 +1,9 @@
 use super::capture_token;
 use super::categorize;
 use super::token::Token;
-use crate::NeniyError;
+use crate::Result;
 
-fn lexic_parse(source_code: &[u8]) -> Result<Vec<Token>, NeniyError> {
+fn lexic_parse(source_code: &[u8]) -> Result<Vec<Token>> {
     let mut tokens = Vec::with_capacity(source_code.len() / 4);
     let mut i = 0;
 

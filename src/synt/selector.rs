@@ -1,12 +1,10 @@
-use std::str;
-
 use super::{
     aux::{self, ListType, State},
     data::{self, DataPtr},
 };
 use crate::{
-    NeniyError,
-    lexic::token::{BaseToken, Token, TokenKind},
+    NeniyError, Result,
+    lexic::token::{BaseToken, Token, TokenCategory, TokenKind},
 };
 
 pub enum SelectorValue {
@@ -31,7 +29,20 @@ pub struct Selector {
     pub units: Vec<SelectorUnit>,
 }
 
-pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector, NeniyError> {
+impl Selector {
+    pub fn new_empty() -> Self {
+        Selector {
+            stem: Token {
+                base: BaseToken::new_empty(),
+                kind: TokenKind::Identifier,
+                category: TokenCategory::Identifier,
+            },
+            units: Vec::new(),
+        }
+    }
+}
+
+pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
     let stem = state[0];
 
     if state.exceed(1)
@@ -67,7 +78,7 @@ pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector, N
     Ok(Selector { stem, units })
 }
 
-fn capture_id_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
+fn capture_id_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "id selector unit", aux::valid_identifier)?;
 
     Ok(SelectorUnit::new(
@@ -76,7 +87,7 @@ fn capture_id_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
     ))
 }
 
-fn capture_range_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
+fn capture_range_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "range selector unit", aux::valid_range)?;
 
     Ok(SelectorUnit::new(
@@ -85,7 +96,7 @@ fn capture_range_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
     ))
 }
 
-fn capture_data_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
+fn capture_data_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "data selector unit", aux::valid_data)?;
 
     Ok(SelectorUnit::new(
@@ -94,7 +105,7 @@ fn capture_data_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
     ))
 }
 
-fn capture_value_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
+fn capture_value_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "value selector unit", aux::valid_value)?;
 
     Ok(SelectorUnit::new(
@@ -103,7 +114,7 @@ fn capture_value_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
     ))
 }
 
-fn capture_numeric_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
+fn capture_numeric_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "numeric selector unit", aux::valid_numeric)?;
 
     Ok(SelectorUnit::new(
@@ -112,7 +123,7 @@ fn capture_numeric_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
     ))
 }
 
-fn capture_list_type_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
+fn capture_list_type_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "list unit", aux::valid_data)?;
 
     Ok(SelectorUnit::new(
@@ -121,7 +132,7 @@ fn capture_list_type_item(state: &mut State) -> Result<SelectorUnit, NeniyError>
     ))
 }
 
-fn capture_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
+fn capture_item(state: &mut State) -> Result<SelectorUnit> {
     match state[0].kind {
         TokenKind::Distance => capture_range_item(state),
         TokenKind::Data => capture_data_item(state),
@@ -141,7 +152,7 @@ fn capture_item(state: &mut State) -> Result<SelectorUnit, NeniyError> {
 }
 
 // state[0] on selector
-fn have_next_text_block(state: &mut State) -> Result<bool, NeniyError> {
+fn have_next_text_block(state: &mut State) -> Result<bool> {
     let mut offset = 2; // after '['
     let mut balance = 1;
 

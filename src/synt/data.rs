@@ -1,11 +1,9 @@
-use std::str;
-
 use super::{
     aux::{self, ListType, State},
     text::{self, Text},
 };
 use crate::{
-    NeniyError,
+    NeniyError, Result,
     lexic::token::{BaseToken, Token, TokenKind},
 };
 
@@ -43,14 +41,14 @@ pub enum DataValue {
 }
 
 // state[0] == '['
-pub fn parse_data(state: &mut State) -> Result<DataPtr, NeniyError> {
+pub fn parse_data(state: &mut State) -> Result<DataPtr> {
     Ok(DataPtr::new(Data {
         units: parse_data_units(state)?,
     }))
 }
 
 // state[0] - id
-pub fn parse_id_with_data(state: &mut State) -> Result<IdWithDataPtr, NeniyError> {
+pub fn parse_id_with_data(state: &mut State) -> Result<IdWithDataPtr> {
     let id = state[0].base;
 
     if state.exceed(1) || !aux::valid_data(state[1]) {
@@ -77,7 +75,7 @@ fn capture_mono_item(state: &mut State) -> DataUnit {
     }
 }
 
-fn capture_text_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_text_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "text unit", aux::valid_text)?;
 
     Ok(DataUnit::new(
@@ -86,7 +84,7 @@ fn capture_text_item(state: &mut State) -> Result<DataUnit, NeniyError> {
     ))
 }
 
-fn capture_numeric_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_numeric_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "numeric unit", aux::valid_numeric)?;
 
     Ok(DataUnit::new(
@@ -96,7 +94,7 @@ fn capture_numeric_item(state: &mut State) -> Result<DataUnit, NeniyError> {
 }
 
 // state[0] == '['
-fn capture_lore(state: &mut State) -> Result<Vec<Text>, NeniyError> {
+fn capture_lore(state: &mut State) -> Result<Vec<Text>> {
     let mut lore = Vec::new();
 
     *state += 1;
@@ -124,7 +122,7 @@ fn capture_lore(state: &mut State) -> Result<Vec<Text>, NeniyError> {
     Ok(lore)
 }
 
-fn capture_lore_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_lore_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "lore unit", aux::valid_data)?;
 
     Ok(DataUnit::new(
@@ -133,7 +131,7 @@ fn capture_lore_item(state: &mut State) -> Result<DataUnit, NeniyError> {
     ))
 }
 
-fn capture_data_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_data_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "data unit", aux::valid_data)?;
 
     Ok(DataUnit::new(
@@ -142,7 +140,7 @@ fn capture_data_item(state: &mut State) -> Result<DataUnit, NeniyError> {
     ))
 }
 
-fn capture_id_with_data_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_id_with_data_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "id with data unit", aux::valid_identifier)?;
 
     Ok(DataUnit::new(
@@ -151,7 +149,7 @@ fn capture_id_with_data_item(state: &mut State) -> Result<DataUnit, NeniyError> 
     ))
 }
 
-fn capture_id_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_id_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "id unit", aux::valid_identifier)?;
 
     Ok(DataUnit::new(
@@ -160,7 +158,7 @@ fn capture_id_item(state: &mut State) -> Result<DataUnit, NeniyError> {
     ))
 }
 
-fn capture_value_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_value_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "value unit", aux::valid_value)?;
 
     Ok(DataUnit::new(
@@ -169,7 +167,7 @@ fn capture_value_item(state: &mut State) -> Result<DataUnit, NeniyError> {
     ))
 }
 
-fn capture_list_type_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_list_type_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "list unit", aux::valid_data)?;
 
     Ok(DataUnit::new(
@@ -178,7 +176,7 @@ fn capture_list_type_item(state: &mut State) -> Result<DataUnit, NeniyError> {
     ))
 }
 
-fn capture_numeric_or_list_item(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_numeric_or_list_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "numeric or list unit", aux::valid_numeric_or_list)?;
 
     if aux::valid_numeric(state[0]) {
@@ -194,7 +192,7 @@ fn capture_numeric_or_list_item(state: &mut State) -> Result<DataUnit, NeniyErro
     ))
 }
 
-fn capture_data_unit(state: &mut State) -> Result<DataUnit, NeniyError> {
+fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
     match state[0].kind {
         TokenKind::About => capture_id_with_data_item(state),
         TokenKind::AttackDamage => capture_numeric_item(state),
@@ -272,7 +270,7 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit, NeniyError> {
 }
 
 // state[0] == '['
-fn parse_data_units(state: &mut State) -> Result<Vec<DataUnit>, NeniyError> {
+fn parse_data_units(state: &mut State) -> Result<Vec<DataUnit>> {
     let mut units = Vec::new();
 
     *state += 1;
