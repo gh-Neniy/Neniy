@@ -41,6 +41,13 @@ impl Selector {
             units: Vec::new(),
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        self.stem.base.is_empty()
+            && self.stem.kind == TokenKind::Identifier
+            && self.stem.category == TokenCategory::Identifier
+            && self.units.is_empty()
+    }
 }
 
 pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
