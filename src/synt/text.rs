@@ -1,6 +1,7 @@
 use super::aux::{self, State};
 use crate::{
-    NeniyError, Result,
+    NeniyError::Syntax,
+    Result,
     lexic::token::{BaseToken, TokenKind},
 };
 
@@ -70,7 +71,7 @@ pub fn parse_text(state: &mut State) -> Result<Text> {
                 text.units.push(unit);
             }
         } else {
-            return Err(NeniyError::Syntax(
+            return Err(Syntax(
                 ["invalid token ", state.extract(0), " instead of '{'"].concat(),
             ));
         }
@@ -79,16 +80,14 @@ pub fn parse_text(state: &mut State) -> Result<Text> {
     }
 
     if state.exceed(0) {
-        return Err(NeniyError::Syntax(
-            "']' not found in text parsing".to_string(),
-        ));
+        return Err(Syntax("']' not found in text parsing".to_string()));
     }
 
     Ok(text)
 }
 
 fn capture_color(state: &mut State) -> Result<BaseToken> {
-    aux::unit_check(state, "color in text unit", aux::valid_identifier)?;
+    aux::unit_check(state, "color in text unit", aux::valid_id)?;
 
     Ok(state[0].base)
 }
@@ -124,7 +123,7 @@ fn capture_text_unit(state: &mut State) -> Result<TextUnit> {
             TokenKind::Italic => unit.italic = true,
             TokenKind::Text => unit.source = capture_source(state)?,
             _ => {
-                return Err(NeniyError::Syntax(
+                return Err(Syntax(
                     ["unknown key ", state.extract(0), " in text"].concat(),
                 ));
             }
@@ -134,7 +133,7 @@ fn capture_text_unit(state: &mut State) -> Result<TextUnit> {
     }
 
     if state.exceed(0) {
-        return Err(NeniyError::Syntax("'}' not found in text unit".to_string()));
+        return Err(Syntax("'}' not found in text unit".to_string()));
     }
 
     Ok(unit)

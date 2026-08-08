@@ -1,9 +1,10 @@
 use super::{
-    aux::{self, ListType, State},
+    aux::{self, List, State},
     text::{self, Text},
 };
 use crate::{
-    NeniyError, Result,
+    NeniyError::Syntax,
+    Result,
     lexic::token::{BaseToken, Token, TokenKind},
 };
 
@@ -35,7 +36,7 @@ pub enum DataValue {
     Identifier(BaseToken),
     Data(DataPtr),
     IdWithData(IdWithDataPtr),
-    List(ListType),
+    List(List),
     Text(Text),
     Lore(Vec<Text>),
 }
@@ -105,7 +106,7 @@ fn capture_lore(state: &mut State) -> Result<Vec<Text>> {
         }
 
         if !aux::valid_text(state[0]) {
-            return Err(NeniyError::Syntax(
+            return Err(Syntax(
                 ["invalid text bound ", state.extract(0), " in lore"].concat(),
             ));
         }
@@ -116,7 +117,7 @@ fn capture_lore(state: &mut State) -> Result<Vec<Text>> {
     }
 
     if state.exceed(0) {
-        return Err(NeniyError::Syntax("']' not found for lore".to_string()));
+        return Err(Syntax("']' not found for lore".to_string()));
     }
 
     Ok(lore)
@@ -141,7 +142,7 @@ fn capture_data_item(state: &mut State) -> Result<DataUnit> {
 }
 
 fn capture_id_with_data_item(state: &mut State) -> Result<DataUnit> {
-    aux::unit_check(state, "id with data unit", aux::valid_identifier)?;
+    aux::unit_check(state, "id with data unit", aux::valid_id)?;
 
     Ok(DataUnit::new(
         state[-2],
@@ -150,7 +151,7 @@ fn capture_id_with_data_item(state: &mut State) -> Result<DataUnit> {
 }
 
 fn capture_id_item(state: &mut State) -> Result<DataUnit> {
-    aux::unit_check(state, "id unit", aux::valid_identifier)?;
+    aux::unit_check(state, "id unit", aux::valid_id)?;
 
     Ok(DataUnit::new(
         state[-2],
@@ -263,7 +264,7 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
         TokenKind::West => Ok(capture_mono_item(state)),
         TokenKind::Width => capture_numeric_item(state),
 
-        _ => Err(NeniyError::Syntax(
+        _ => Err(Syntax(
             ["unknown key ", state.extract(0), " in data unit"].concat(),
         )),
     }
@@ -286,7 +287,7 @@ fn parse_data_units(state: &mut State) -> Result<Vec<DataUnit>> {
     }
 
     if state.exceed(0) {
-        return Err(NeniyError::Syntax("']' not found for data".to_string()));
+        return Err(Syntax("']' not found for data".to_string()));
     }
 
     Ok(units)

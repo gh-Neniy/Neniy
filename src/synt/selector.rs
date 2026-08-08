@@ -1,16 +1,17 @@
 use super::{
-    aux::{self, ListType, State},
+    aux::{self, List, State},
     data::{self, DataPtr},
 };
 use crate::{
-    NeniyError, Result,
+    NeniyError::Syntax,
+    Result,
     lexic::token::{BaseToken, Token, TokenCategory, TokenKind},
 };
 
 pub enum SelectorValue {
     Value(BaseToken),
     Data(DataPtr),
-    List(ListType),
+    List(List),
 }
 
 pub struct SelectorUnit {
@@ -70,16 +71,14 @@ pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
     }
 
     if state.exceed(0) {
-        return Err(NeniyError::Syntax(
-            "']' not found in selector parse".to_string(),
-        ));
+        return Err(Syntax("']' not found in selector parse".to_string()));
     }
 
     Ok(Selector { stem, units })
 }
 
 fn capture_id_item(state: &mut State) -> Result<SelectorUnit> {
-    aux::unit_check(state, "id selector unit", aux::valid_identifier)?;
+    aux::unit_check(state, "id selector unit", aux::valid_id)?;
 
     Ok(SelectorUnit::new(
         state[-2],
@@ -145,7 +144,7 @@ fn capture_item(state: &mut State) -> Result<SelectorUnit> {
         TokenKind::Team | TokenKind::Type => capture_id_item(state),
         TokenKind::XRotation | TokenKind::YRotation => capture_range_item(state),
 
-        _ => Err(NeniyError::Syntax(
+        _ => Err(Syntax(
             ["unknown key ", state.extract(0), " in selector unit"].concat(),
         )),
     }
@@ -171,7 +170,7 @@ fn have_next_text_block(state: &mut State) -> Result<bool> {
     }
 
     if state.exceed(offset) && balance > 0 {
-        return Err(NeniyError::Syntax(
+        return Err(Syntax(
             [
                 "invalid square brace sequence: ",
                 state.extract_segment(0, offset - 1),

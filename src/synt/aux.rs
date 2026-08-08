@@ -4,7 +4,8 @@ use std::{
 };
 
 use crate::{
-    NeniyError, Result,
+    NeniyError::Syntax,
+    Result,
     lexic::token::{BaseToken, IndexType, Token, TokenCategory, TokenKind},
 };
 
@@ -25,6 +26,10 @@ impl<'a> State<'a> {
 
     pub fn exceed(&self, offset: IndexType) -> bool {
         self.pos + offset >= self.tokens.len() as IndexType
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.exceed(0)
     }
 
     pub fn extract(&self, offset: IndexType) -> &str {
@@ -60,7 +65,7 @@ pub struct ListUnit {
     value: BaseToken,
 }
 
-pub type ListType = Vec<ListUnit>;
+pub type List = Vec<ListUnit>;
 
 pub fn capture_range(state: &mut State) -> Result<BaseToken> {
     let mut range = state[0].base;
@@ -71,7 +76,7 @@ pub fn capture_range(state: &mut State) -> Result<BaseToken> {
         }
 
         if !consecutive(state[0], state[1]) {
-            return Err(NeniyError::Syntax(
+            return Err(Syntax(
                 ["invalid range", state.extract_segment(0, 1)].concat(),
             ));
         }
@@ -87,12 +92,10 @@ pub fn check_presence(
     state: &mut State,
     offset: IndexType,
     token_name: &str,
-    command: &str,
+    name: &str,
 ) -> Result<()> {
     if state.exceed(offset) {
-        return Err(NeniyError::Syntax(
-            [token_name, " not found for ", command].concat(),
-        ));
+        return Err(Syntax([token_name, " not found for ", name].concat()));
     }
 
     *state += offset;
@@ -103,22 +106,14 @@ pub fn check_token(
     state: &mut State,
     offset: IndexType,
     token_name: &str,
-    command: &str,
+    name: &str,
     valid_token: fn(Token) -> bool,
 ) -> Result<()> {
-    check_presence(state, offset, token_name, command)?;
+    check_presence(state, offset, token_name, name)?;
 
     if !valid_token(state[0]) {
-        return Err(NeniyError::Syntax(
-            [
-                "invalid",
-                token_name,
-                " ",
-                state.extract(0),
-                " in ",
-                command,
-            ]
-            .concat(),
+        return Err(Syntax(
+            ["invalid", token_name, " ", state.extract(0), " in ", name].concat(),
         ));
     }
 
@@ -131,17 +126,13 @@ pub fn unit_check(
     valid_value: fn(Token) -> bool,
 ) -> Result<()> {
     if state.exceed(2) {
-        return Err(NeniyError::Syntax(
-            ["not enough tokens for ", unit_name].concat(),
-        ));
+        return Err(Syntax(["not enough tokens for ", unit_name].concat()));
     }
     if state[1].kind != TokenKind::EqualOperator {
-        return Err(NeniyError::Syntax(
-            ["'=' not found for ", unit_name].concat(),
-        ));
+        return Err(Syntax(["'=' not found for ", unit_name].concat()));
     }
     if !valid_value(state[2]) {
-        return Err(NeniyError::Syntax(
+        return Err(Syntax(
             ["invalid value ", state.extract(2), " for ", unit_name].concat(),
         ));
     }
@@ -154,6 +145,10 @@ pub fn consecutive(t1: Token, t2: Token) -> bool {
     t1.base.end + 1 == t2.base.start
 }
 
+pub fn consecutive3(t1: Token, t2: Token, t3: Token) -> bool {
+    t1.base.end + 1 == t2.base.start && t2.base.end + 1 == t3.base.start
+}
+
 pub fn valid_coordinate(token: Token) -> bool {
     valid_numeric(token) || matches!(token.kind, TokenKind::Tilda | TokenKind::Caret)
 }
@@ -163,10 +158,10 @@ pub fn valid_data(token: Token) -> bool {
 }
 
 pub fn valid_entity(token: Token) -> bool {
-    valid_identifier(token) || token.category == TokenCategory::Selector
+    valid_id(token) || token.category == TokenCategory::Selector
 }
 
-pub fn valid_identifier(token: Token) -> bool {
+pub fn valid_id(token: Token) -> bool {
     matches!(
         token.category,
         TokenCategory::Identifier | TokenCategory::Keyword
@@ -201,12 +196,12 @@ pub fn valid_text(token: Token) -> bool {
 }
 
 pub fn valid_value(token: Token) -> bool {
-    valid_identifier(token) || valid_numeric(token)
+    valid_id(token) || valid_numeric(token)
 }
 
 // state[0] == '['
-pub fn capture_list(state: &mut State) -> Result<ListType> {
-    let mut list = ListType::new();
+pub fn capture_list(state: &mut State) -> Result<List> {
+    let mut list = List::new();
 
     *state += 1;
     while !state.exceed(0) && state[0].kind != TokenKind::ClosingSquareBrace {
@@ -225,8 +220,8 @@ pub fn capture_list(state: &mut State) -> Result<ListType> {
             continue;
         }
 
-        if !valid_identifier(state[0]) {
-            return Err(NeniyError::Syntax(
+        if !valid_id(state[0]) {
+            return Err(Syntax(
                 ["invalid key ", state.extract(0), " in list"].concat(),
             ));
         }
@@ -237,9 +232,7 @@ pub fn capture_list(state: &mut State) -> Result<ListType> {
     }
 
     if state.exceed(0) {
-        return Err(NeniyError::Syntax(
-            "']' not found for list in selector".to_string(),
-        ));
+        return Err(Syntax("']' not found for list in selector".to_string()));
     }
 
     Ok(list)
@@ -251,7 +244,7 @@ fn capture_range_impl(state: &mut State) -> Result<IndexType> {
     }
 
     if !consecutive(state[0], state[1]) {
-        return Err(NeniyError::Syntax(
+        return Err(Syntax(
             ["invalid range ", state.extract_segment(0, 1)].concat(),
         ));
     }

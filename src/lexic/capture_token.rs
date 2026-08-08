@@ -1,5 +1,5 @@
 use super::token::{self, IndexType, Token, TokenCategory, TokenKind};
-use crate::{NeniyError, Result};
+use crate::{NeniyError::Lexic, Result};
 
 pub fn capture_token(
     source_code: &[u8],
@@ -37,7 +37,7 @@ fn capture_short_token(
         TokenCategory::Selector => capture_selector(source_code, start_pos),
         TokenCategory::Special => capture_special(source_code, start_pos),
 
-        _ => Err(NeniyError::Lexic(
+        _ => Err(Lexic(
             "invalid token category in CaptureShortToken() (internal)".to_string(),
         )),
     }
@@ -60,7 +60,7 @@ fn capture_operator(source_code: &[u8], start_pos: usize) -> Token {
 
 fn capture_selector(source_code: &[u8], start_pos: usize) -> Result<Token> {
     if start_pos + 1 == source_code.len() {
-        return Err(NeniyError::Lexic("@ instead of selector".to_string()));
+        return Err(Lexic("@ instead of selector".to_string()));
     }
 
     Ok(Token::new(
@@ -76,7 +76,7 @@ fn capture_special(source_code: &[u8], start_pos: usize) -> Result<Token> {
 
     if source_code[start_pos] == b'.' {
         if start_pos + 1 == source_code.len() || source_code[start_pos + 1] != b'.' {
-            return Err(NeniyError::Lexic("invalid range token".to_string()));
+            return Err(Lexic("invalid range token".to_string()));
         }
 
         offset += 1;
@@ -174,7 +174,7 @@ fn capture_long_token(
             TokenCategory::Invalid => !source_code[end_pos].is_ascii_whitespace(),
 
             _ => {
-                return Err(NeniyError::Lexic(
+                return Err(Lexic(
                     "invalid token category in capture_long_token() (internal)".to_string(),
                 ));
             }
@@ -199,9 +199,7 @@ fn capture_long_token(
         && end_pos == source_code.len()
         && *source_code.last().unwrap() != b'\''
     {
-        return Err(NeniyError::Lexic(
-            "string literal quotation is not closed".to_string(),
-        ));
+        return Err(Lexic("string literal quotation is not closed".to_string()));
     }
 
     let token_body = &source_code[start_pos..end_pos];
@@ -218,7 +216,7 @@ fn capture_long_token(
             Ok(Token::new(start, end, TokenKind::StringLiteral, category))
         }
 
-        _ => Err(NeniyError::Lexic(
+        _ => Err(Lexic(
             ["invalid token ", std::str::from_utf8(token_body).unwrap()].concat(),
         )),
     }

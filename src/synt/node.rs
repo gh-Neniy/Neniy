@@ -1,7 +1,8 @@
 use crate::lexic::token::BaseToken;
 
-use super::{aux::ListType, data::IdWithDataPtr, selector::Selector, text::Text};
+use super::{aux::List, data::IdWithDataPtr, selector::Selector, text::Text};
 
+#[derive(PartialEq, Eq)]
 pub enum Command {
     Advancement,
     Attribute,
@@ -14,41 +15,41 @@ pub enum Command {
     DataGet,
     DataModify,
     Effect,
-    Execute,
-    ExecuteAlign,
-    ExecuteAnchored,
-    ExecuteAs,
-    ExecuteAt,
-    ExecuteFacing,
-    ExecutePositioned,
-    ExecuteStoreBossbar,
-    ExecuteStoreEntity,
-    ExecuteStoreScore,
-    ExecuteStoreStorage,
-    ExecuteUninited,
-    ExecuteBlock,
-    ExecuteEntity,
-    ExecuteItemsBlock,
-    ExecuteItemsEntity,
-    ExecuteScore,
+    Ex,
+    ExAlign,
+    ExAnchored,
+    ExAs,
+    ExAt,
+    ExFacing,
+    ExPos,
+    ExStoreBossbar,
+    ExStoreEnt,
+    ExStoreScore,
+    ExStoreStorage,
+    ExUninited,
+    ExBlock,
+    ExEnt,
+    ExItemsBlock,
+    ExItemsEnt,
+    ExScore,
     Fill,
-    Function,
-    Gamemode,
+    Fn,
+    Gm,
     Gamerule,
     Give,
     Kill,
     Native,
-    Particle,
-    Playsound,
+    Ptc,
+    Pls,
     Say,
-    ScoreboardObjectivesAdd,
-    ScoreboardObjectivesSet,
-    ScoreboardPlayers,
+    ScbObjAdd,
+    ScbObjSet,
+    ScbPlayers,
     Setblock,
     Spawnpoint,
     Spectate,
     Stopsound,
-    Summon,
+    Sm,
     Tag,
     TeamAdd,
     TeamJoin,
@@ -87,7 +88,7 @@ pub enum Node {
     }, // 57 bytes
 
     SelectorIdWithDataPtr(Box<SelectorIdWithDataPtrNode>), // 8 bytes (instead of 65)
-    SelectorListType(Box<SelectorListTypeNode>),           // 8 bytes (instead of 81)
+    SelectorList(Box<SelectorListNode>),                   // 8 bytes (instead of 81)
     SelectorText(Box<SelectorTextNode>),                   // 8 bytes (instead of 81)
 
     Text {
@@ -111,11 +112,11 @@ pub struct SelectorIdWithDataPtrNode {
     pub id_with_data_ptr: IdWithDataPtr,
 }
 
-pub struct SelectorListTypeNode {
+pub struct SelectorListNode {
     pub args: Vec<BaseToken>,
     pub command: Command,
     pub selector: Selector,
-    pub list: ListType,
+    pub list: List,
 }
 
 pub struct SelectorTextNode {
