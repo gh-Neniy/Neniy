@@ -9,6 +9,9 @@ pub enum NeniyError {
     #[error("Lexic error - {0}")]
     Lexic(String),
 
+    #[error("Logic error - {0}")]
+    Logic(String),
+
     #[error("Syntax error - {0}")]
     Syntax(String),
 

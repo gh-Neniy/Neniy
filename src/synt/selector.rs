@@ -15,8 +15,8 @@ pub enum SelectorValue {
 }
 
 pub struct SelectorUnit {
-    key: Token,
-    value: SelectorValue,
+    pub key: Token,
+    pub value: SelectorValue,
 }
 
 impl SelectorUnit {

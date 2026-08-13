@@ -1,16 +1,16 @@
 use super::{
-    aux::{self, List, State},
-    text::{self, Text},
+    aux::{self, List, ListUnit, State},
+    text::{self, Text, TextUnit},
 };
 use crate::{
-    NeniyError::Syntax,
+    NeniyError::{Logic, Syntax},
     Result,
     lexic::token::{BaseToken, Token, TokenKind},
 };
 
 pub struct DataUnit {
-    key: Token,
-    value: DataValue,
+    pub key: Token,
+    pub value: DataValue,
 }
 
 impl DataUnit {
@@ -20,12 +20,12 @@ impl DataUnit {
 }
 
 pub struct Data {
-    units: Vec<DataUnit>,
+    pub units: Vec<DataUnit>,
 }
 
 pub struct IdWithData {
-    data: Data,
-    id: BaseToken,
+    pub data: Data,
+    pub id: BaseToken,
 }
 
 pub type DataPtr = Box<Data>;
@@ -39,6 +39,79 @@ pub enum DataValue {
     List(List),
     Text(Text),
     Lore(Vec<Text>),
+}
+
+impl DataValue {
+    pub fn as_id(&self) -> Result<BaseToken> {
+        if let DataValue::Identifier(id) = self {
+            Ok(*id)
+        } else {
+            Err(Logic(self.error("Identifier")))
+        }
+    }
+
+    pub fn as_data(&self) -> Result<&DataPtr> {
+        if let DataValue::Data(data_ptr) = self {
+            Ok(data_ptr)
+        } else {
+            Err(Logic(self.error("Data")))
+        }
+    }
+
+    pub fn as_id_with_data(&self) -> Result<&IdWithDataPtr> {
+        if let DataValue::IdWithData(id_with_data_ptr) = self {
+            Ok(id_with_data_ptr)
+        } else {
+            Err(Logic(self.error("IdWithData")))
+        }
+    }
+
+    pub fn as_list(&self) -> Result<&[ListUnit]> {
+        if let DataValue::List(list) = self {
+            Ok(list)
+        } else {
+            Err(Logic(self.error("List")))
+        }
+    }
+
+    pub fn as_text(&self) -> Result<&Text> {
+        if let DataValue::Text(text) = self {
+            Ok(text)
+        } else {
+            Err(Logic(self.error("Text")))
+        }
+    }
+
+    pub fn as_lore(&self) -> Result<&[Text]> {
+        if let DataValue::Lore(lore) = self {
+            Ok(lore)
+        } else {
+            Err(Logic(self.error("Lore")))
+        }
+    }
+
+    fn actual(&self) -> &str {
+        match self {
+            DataValue::Nothing => "Nothing",
+            DataValue::Identifier(_) => "Identifier",
+            DataValue::Data(_) => "Data",
+            DataValue::IdWithData(_) => "IdWithData",
+            DataValue::List(_) => "List",
+            DataValue::Text(_) => "Text",
+            DataValue::Lore(_) => "Lore",
+        }
+    }
+
+    fn error(&self, tried: &str) -> String {
+        [
+            "tried to extract DataValue as ",
+            tried,
+            ", but actual variant was ",
+            self.actual(),
+            " (internal)",
+        ]
+        .concat()
+    }
 }
 
 // state[0] == '['

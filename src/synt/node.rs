@@ -2,7 +2,7 @@ use crate::lexic::token::BaseToken;
 
 use super::{aux::List, data::IdWithDataPtr, selector::Selector, text::Text};
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Command {
     Advancement,
     Attribute,

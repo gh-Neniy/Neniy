@@ -34,12 +34,16 @@ impl TextUnit {
 
 #[derive(Debug)]
 pub struct Text {
-    units: Vec<TextUnit>,
+    pub units: Vec<TextUnit>,
 }
 
 impl Text {
     pub fn new() -> Self {
         Text { units: Vec::new() }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.units.is_empty()
     }
 }
 

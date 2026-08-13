@@ -61,8 +61,8 @@ impl<'a> Index<i16> for State<'a> {
 }
 
 pub struct ListUnit {
-    key: BaseToken,
-    value: BaseToken,
+    pub key: BaseToken,
+    pub value: BaseToken,
 }
 
 pub type List = Vec<ListUnit>;
