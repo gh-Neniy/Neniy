@@ -1,6 +1,4 @@
-use super::capture_token;
-use super::categorize;
-use super::token::Token;
+use super::{capture_token, categorize, token::Token};
 use crate::Result;
 
 fn parse(source_code: &[u8]) -> Result<Vec<Token>> {

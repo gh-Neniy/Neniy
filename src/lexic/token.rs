@@ -1,5 +1,4 @@
 use sorted_code::{sorted_consts, sorted_enum, sorted_match};
-use std::cmp::Ordering;
 
 #[sorted_enum]
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
