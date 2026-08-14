@@ -1,3 +1,5 @@
+use sorted_code::{sorted_match, sorted_methods};
+
 use super::{
     aux::{self, List, ListUnit, State},
     text::{self, Text, TextUnit},
@@ -8,6 +10,7 @@ use crate::{
     lexic::token::{BaseToken, Token, TokenKind},
 };
 
+#[derive(Debug)]
 pub struct DataUnit {
     pub key: Token,
     pub value: DataValue,
@@ -19,10 +22,9 @@ impl DataUnit {
     }
 }
 
-pub struct Data {
-    pub units: Vec<DataUnit>,
-}
+pub type Data = Vec<DataUnit>;
 
+#[derive(Debug)]
 pub struct IdWithData {
     pub data: Data,
     pub id: BaseToken,
@@ -31,9 +33,10 @@ pub struct IdWithData {
 pub type DataPtr = Box<Data>;
 pub type IdWithDataPtr = Box<IdWithData>;
 
+#[derive(Debug)]
 pub enum DataValue {
     Nothing,
-    Identifier(BaseToken),
+    Id(BaseToken),
     Data(DataPtr),
     IdWithData(IdWithDataPtr),
     List(List),
@@ -41,20 +44,21 @@ pub enum DataValue {
     Lore(Vec<Text>),
 }
 
+#[sorted_methods]
 impl DataValue {
-    pub fn as_id(&self) -> Result<BaseToken> {
-        if let DataValue::Identifier(id) = self {
-            Ok(*id)
-        } else {
-            Err(Logic(self.error("Identifier")))
-        }
-    }
-
     pub fn as_data(&self) -> Result<&DataPtr> {
         if let DataValue::Data(data_ptr) = self {
             Ok(data_ptr)
         } else {
             Err(Logic(self.error("Data")))
+        }
+    }
+
+    pub fn as_id(&self) -> Result<BaseToken> {
+        if let DataValue::Id(id) = self {
+            Ok(*id)
+        } else {
+            Err(Logic(self.error("Id")))
         }
     }
 
@@ -74,14 +78,6 @@ impl DataValue {
         }
     }
 
-    pub fn as_text(&self) -> Result<&Text> {
-        if let DataValue::Text(text) = self {
-            Ok(text)
-        } else {
-            Err(Logic(self.error("Text")))
-        }
-    }
-
     pub fn as_lore(&self) -> Result<&[Text]> {
         if let DataValue::Lore(lore) = self {
             Ok(lore)
@@ -90,24 +86,31 @@ impl DataValue {
         }
     }
 
-    fn actual(&self) -> &str {
-        match self {
+    pub fn as_text(&self) -> Result<&[TextUnit]> {
+        if let DataValue::Text(text) = self {
+            Ok(text)
+        } else {
+            Err(Logic(self.error("Text")))
+        }
+    }
+
+    #[sort_end]
+    fn error(&self, tried: &str) -> String {
+        let actual = match self {
             DataValue::Nothing => "Nothing",
-            DataValue::Identifier(_) => "Identifier",
+            DataValue::Id(_) => "Id",
             DataValue::Data(_) => "Data",
             DataValue::IdWithData(_) => "IdWithData",
             DataValue::List(_) => "List",
             DataValue::Text(_) => "Text",
             DataValue::Lore(_) => "Lore",
-        }
-    }
+        };
 
-    fn error(&self, tried: &str) -> String {
         [
             "tried to extract DataValue as ",
             tried,
             ", but actual variant was ",
-            self.actual(),
+            actual,
             " (internal)",
         ]
         .concat()
@@ -116,9 +119,7 @@ impl DataValue {
 
 // state[0] == '['
 pub fn parse_data(state: &mut State) -> Result<DataPtr> {
-    Ok(DataPtr::new(Data {
-        units: parse_data_units(state)?,
-    }))
+    Ok(DataPtr::new(parse_data_units(state)?))
 }
 
 // state[0] - id
@@ -127,7 +128,7 @@ pub fn parse_id_with_data(state: &mut State) -> Result<IdWithDataPtr> {
 
     if state.exceed(1) || !aux::valid_data(state[1]) {
         return Ok(IdWithDataPtr::new(IdWithData {
-            data: Data { units: Vec::new() },
+            data: Vec::new(),
             id,
         }));
     }
@@ -135,9 +136,7 @@ pub fn parse_id_with_data(state: &mut State) -> Result<IdWithDataPtr> {
     *state += 1;
 
     Ok(IdWithDataPtr::new(IdWithData {
-        data: Data {
-            units: parse_data_units(state)?,
-        },
+        data: parse_data_units(state)?,
         id,
     }))
 }
@@ -161,10 +160,7 @@ fn capture_text_item(state: &mut State) -> Result<DataUnit> {
 fn capture_numeric_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "numeric unit", aux::valid_numeric)?;
 
-    Ok(DataUnit::new(
-        state[-2],
-        DataValue::Identifier(state[0].base),
-    ))
+    Ok(DataUnit::new(state[-2], DataValue::Id(state[0].base)))
 }
 
 // state[0] == '['
@@ -172,7 +168,7 @@ fn capture_lore(state: &mut State) -> Result<Vec<Text>> {
     let mut lore = Vec::new();
 
     *state += 1;
-    while !state.exceed(0) && state[0].kind != TokenKind::ClosingSquareBrace {
+    while !state.is_empty() && state[0].kind != TokenKind::ClosingSquareBrace {
         if state[0].kind == TokenKind::Comma {
             *state += 1;
             continue;
@@ -189,7 +185,7 @@ fn capture_lore(state: &mut State) -> Result<Vec<Text>> {
         *state += 1;
     }
 
-    if state.exceed(0) {
+    if state.is_empty() {
         return Err(Syntax("']' not found for lore".to_string()));
     }
 
@@ -226,19 +222,13 @@ fn capture_id_with_data_item(state: &mut State) -> Result<DataUnit> {
 fn capture_id_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "id unit", aux::valid_id)?;
 
-    Ok(DataUnit::new(
-        state[-2],
-        DataValue::Identifier(state[0].base),
-    ))
+    Ok(DataUnit::new(state[-2], DataValue::Id(state[0].base)))
 }
 
 fn capture_value_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "value unit", aux::valid_value)?;
 
-    Ok(DataUnit::new(
-        state[-2],
-        DataValue::Identifier(state[0].base),
-    ))
+    Ok(DataUnit::new(state[-2], DataValue::Id(state[0].base)))
 }
 
 fn capture_list_type_item(state: &mut State) -> Result<DataUnit> {
@@ -254,10 +244,7 @@ fn capture_numeric_or_list_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "numeric or list unit", aux::valid_numeric_or_list)?;
 
     if aux::valid_numeric(state[0]) {
-        return Ok(DataUnit::new(
-            state[-2],
-            DataValue::Identifier(state[0].base),
-        ));
+        return Ok(DataUnit::new(state[-2], DataValue::Id(state[0].base)));
     }
 
     Ok(DataUnit::new(
@@ -267,80 +254,31 @@ fn capture_numeric_or_list_item(state: &mut State) -> Result<DataUnit> {
 }
 
 fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
-    match state[0].kind {
-        TokenKind::About => capture_id_with_data_item(state),
-        TokenKind::AttackDamage => capture_numeric_item(state),
-        TokenKind::AttackSpeed => capture_numeric_item(state),
-        TokenKind::Axis => capture_id_item(state),
-        TokenKind::Block => capture_id_with_data_item(state),
-        TokenKind::CanGrab => Ok(capture_mono_item(state)),
-        TokenKind::CanPlaceOn => capture_id_item(state),
-        TokenKind::Chest => capture_id_with_data_item(state),
-        TokenKind::ChestChance => capture_numeric_item(state),
-        TokenKind::Crit => Ok(capture_mono_item(state)),
-        TokenKind::East => Ok(capture_mono_item(state)),
-        TokenKind::Enchantments => capture_list_type_item(state),
-        TokenKind::Facing => capture_id_item(state),
-        TokenKind::Feet => capture_id_with_data_item(state),
-        TokenKind::FeetChance => capture_numeric_item(state),
-        TokenKind::FromColor => capture_list_type_item(state),
-        TokenKind::Half => capture_id_item(state),
-        TokenKind::Head => capture_id_with_data_item(state),
-        TokenKind::HeadChance => capture_numeric_item(state),
-        TokenKind::Health => capture_numeric_item(state),
-        TokenKind::Hide => Ok(capture_mono_item(state)),
-        TokenKind::Height => capture_numeric_item(state),
-        TokenKind::HurtTime => capture_numeric_item(state),
-        TokenKind::Id => capture_id_with_data_item(state),
-        TokenKind::InGround => Ok(capture_mono_item(state)),
-        TokenKind::Interaction => Ok(capture_mono_item(state)),
-        TokenKind::Invisible => Ok(capture_mono_item(state)),
-        TokenKind::Invulnerable => Ok(capture_mono_item(state)),
-        TokenKind::Item => capture_id_with_data_item(state),
-        TokenKind::LeftHand => capture_id_with_data_item(state),
-        TokenKind::LeftHandChance => capture_numeric_item(state),
-        TokenKind::Legs => capture_id_with_data_item(state),
-        TokenKind::LegsChance => capture_numeric_item(state),
-        TokenKind::Level => capture_numeric_item(state),
-        TokenKind::Lit => Ok(capture_mono_item(state)),
-        TokenKind::LootTable => capture_id_item(state),
-        TokenKind::Lore => capture_lore_item(state),
-        TokenKind::Name => capture_text_item(state),
-        TokenKind::NameVisible => Ok(capture_mono_item(state)),
-        TokenKind::North => Ok(capture_mono_item(state)),
-        TokenKind::Data => capture_data_item(state),
-        TokenKind::NoAI => Ok(capture_mono_item(state)),
-        TokenKind::NoDespawn => Ok(capture_mono_item(state)),
-        TokenKind::NoGravity => Ok(capture_mono_item(state)),
-        TokenKind::Sign => capture_lore_item(state),
-        TokenKind::Stability => capture_numeric_item(state),
-        TokenKind::Open => Ok(capture_mono_item(state)),
-        TokenKind::PickupDelay => capture_numeric_item(state),
-        TokenKind::Potion => capture_id_item(state),
-        TokenKind::PotionColor => capture_numeric_item(state),
-        TokenKind::Powered => Ok(capture_mono_item(state)),
-        TokenKind::Rotation => capture_list_type_item(state),
-        TokenKind::RightHand => capture_id_with_data_item(state),
-        TokenKind::RightHandChance => capture_numeric_item(state),
-        TokenKind::Scale => capture_numeric_or_list_item(state),
-        TokenKind::SelectedItem => capture_id_with_data_item(state),
-        TokenKind::Stack => capture_numeric_item(state),
-        TokenKind::Shine => Ok(capture_mono_item(state)),
-        TokenKind::Silent => Ok(capture_mono_item(state)),
-        TokenKind::Size => capture_numeric_item(state),
-        TokenKind::South => Ok(capture_mono_item(state)),
-        TokenKind::Tag => capture_value_item(state),
-        TokenKind::TeleportDuration => capture_numeric_item(state),
-        TokenKind::Text => capture_text_item(state),
-        TokenKind::ToColor => capture_list_type_item(state),
-        TokenKind::Unbreakable => Ok(capture_mono_item(state)),
-        TokenKind::West => Ok(capture_mono_item(state)),
-        TokenKind::Width => capture_numeric_item(state),
+    use TokenKind::*;
+
+    sorted_match! { match state[0].kind {
+        About | Block | Chest | Feet | Head | Id | Item | LeftHand | Legs | RightHand
+        | SelectedItem => capture_id_with_data_item(state),
+        AttackDamage | AttackSpeed | ChestChance | FeetChance | HeadChance | Health | Height
+        | HurtTime | LeftHandChance | LegsChance | Level | PickupDelay | PotionColor
+        | RightHandChance | Size | Stability | Stack | TpTime | Width => {
+            capture_numeric_item(state)
+        }
+        Axis | CanPlaceOn | Facing | Half | LootTable | Potion => capture_id_item(state),
+        CanGrab | Crit | East | Hide | InGround | Interaction | Invisible | Invulnerable | Lit
+        | NameVisible | NoAI | NoDespawn | NoGravity | North | Open | Powered | Shine | Silent
+        | South | Unbreakable | West => Ok(capture_mono_item(state)),
+        Data => capture_data_item(state),
+        Enchantments | FromColor | Rotation | ToColor => capture_list_type_item(state),
+        Lore | Sign => capture_lore_item(state),
+        Name | Text => capture_text_item(state),
+        Scale => capture_numeric_or_list_item(state),
+        Tag => capture_value_item(state),
 
         _ => Err(Syntax(
             ["unknown key ", state.extract(0), " in data unit"].concat(),
         )),
-    }
+    }}
 }
 
 // state[0] == '['
@@ -348,7 +286,7 @@ fn parse_data_units(state: &mut State) -> Result<Vec<DataUnit>> {
     let mut units = Vec::new();
 
     *state += 1;
-    while !state.exceed(0) && state[0].kind != TokenKind::ClosingSquareBrace {
+    while !state.is_empty() && state[0].kind != TokenKind::ClosingSquareBrace {
         if state[0].kind == TokenKind::Comma {
             *state += 1;
             continue;
@@ -359,7 +297,7 @@ fn parse_data_units(state: &mut State) -> Result<Vec<DataUnit>> {
         *state += 1;
     }
 
-    if state.exceed(0) {
+    if state.is_empty() {
         return Err(Syntax("']' not found for data".to_string()));
     }
 

@@ -1,5 +1,7 @@
 use std::str;
 
+use sorted_code::sorted_match;
+
 use super::{
     aux::{self, List, State},
     data,
@@ -11,13 +13,672 @@ use super::{
 use crate::{
     NeniyError::Syntax,
     Result,
-    lexic::token::{BaseToken, IndexType, Token, TokenCategory, TokenKind},
+    lexic::token::{BaseToken, Index, Token, TokenCategory, TokenKind},
 };
 
 macro_rules! make_check_kind {
     ($types:pat) => {
         (|token: Token| matches!(token.kind, $types)) as fn(Token) -> bool
     };
+}
+
+pub fn choose_parse(state: &mut State) -> Result<Node> {
+    sorted_match! { match state[0].kind {
+        TokenKind::Advancement => advancement_parse(state),
+        TokenKind::Attribute => attribute_parse(state),
+        TokenKind::Bossbar => bossbar_parse(state),
+        TokenKind::Clear => clear_parse(state),
+        TokenKind::Clone => clone_parse(state),
+        TokenKind::Damage => damage_parse(state),
+        TokenKind::Data => data_parse(state),
+        TokenKind::Effect => effect_parse(state),
+        TokenKind::Ex => ex_parse(state),
+        TokenKind::Fill => fill_parse(state),
+        TokenKind::Fn => fn_parse(state),
+        TokenKind::Gamerule => gamerule_parse(state),
+        TokenKind::Give => give_parse(state),
+        TokenKind::Gm => gm_parse(state),
+        TokenKind::Kill => kill_parse(state),
+        TokenKind::Native => native_parse(state),
+        TokenKind::Pls => pls_parse(state),
+        TokenKind::Ptc => ptc_parse(state),
+        TokenKind::Say => say_parse(state),
+        TokenKind::Scb => scb_parse(state),
+        TokenKind::Setblock => setblock_parse(state),
+        TokenKind::Sm => sm_parse(state),
+        TokenKind::Spawnpoint => spawnpoint_parse(state),
+        TokenKind::Spectate => spectate_parse(state),
+        TokenKind::Stopsound => stopsound_parse(state),
+        TokenKind::Tag => tag_parse(state),
+        TokenKind::Team => team_parse(state),
+        TokenKind::Tellraw => tellraw_parse(state),
+        TokenKind::Time => time_parse(state),
+        TokenKind::Title => title_parse(state),
+        TokenKind::Tp => tp_parse(state),
+
+        _ => Err(Syntax(["unknown command ", state.extract(0)].concat())),
+    }}
+}
+
+pub fn advancement_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "advancement";
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
+    args.push(state[0].base);
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Advancement,
+        selector,
+    })
+}
+
+pub fn attribute_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "attribute";
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
+    args.push(state[0].base);
+
+    aux::check_token(state, 1, "value", NAME, aux::valid_numeric)?;
+    args.push(state[0].base);
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Attribute,
+        selector,
+    })
+}
+
+pub fn bossbar_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "bossbar";
+
+    aux::check_presence(state, 1, "mode", NAME)?;
+
+    match state[0].kind {
+        TokenKind::Add => bossbar_add_parse(state),
+        TokenKind::Set => bossbar_set_parse(state),
+        TokenKind::Remove => bossbar_remove_parse(state),
+
+        _ => Err(Syntax(
+            ["invalid mode ", state.extract(0), " for bossbar"].concat(),
+        )),
+    }
+}
+
+pub fn clear_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "clear";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "player", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_token(state, 1, "item", NAME, aux::valid_id)?;
+    let id_with_data_ptr = data::parse_id_with_data(state)?;
+
+    if !state.exceed(1) && state[1].kind == TokenKind::Numeric {
+        *state += 1;
+        args.push(state[0].base);
+    }
+
+    Ok(Node::SelectorIdWithDataPtr(Box::new(
+        crate::synt::node::SelectorIdWithDataPtrNode {
+            args,
+            command: Command::Clear,
+            selector,
+            id_with_data_ptr,
+        },
+    )))
+}
+
+pub fn clone_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "clone";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "first coordinate", NAME)?;
+    capture_coords(state, &mut args, 9, NAME)?;
+
+    aux::check_token(
+        state,
+        1,
+        "mode",
+        NAME,
+        make_check_kind!(TokenKind::Replace | TokenKind::Masked),
+    )?;
+    args.push(state[0].base);
+
+    if !state.exceed(1) && state[1].kind == TokenKind::Move {
+        *state += 1;
+        args.push(state[0].base);
+    }
+
+    Ok(Node::Base {
+        args,
+        command: Command::Clone,
+    })
+}
+
+pub fn damage_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "damage";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_token(state, 1, "damage amount", NAME, aux::valid_numeric)?;
+    args.push(state[0].base);
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Damage,
+        selector,
+    })
+}
+
+pub fn data_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "data";
+
+    aux::check_presence(state, 1, "mode", NAME)?;
+
+    match state[0].kind {
+        TokenKind::Get => data_get_parse(state),
+        TokenKind::Modify => data_modify_parse(state),
+
+        _ => Err(Syntax(
+            ["invalid mode ", state.extract(0), " for ", NAME].concat(),
+        )),
+    }
+}
+
+pub fn effect_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "effect";
+
+    aux::check_presence(state, 1, "mode", NAME)?;
+
+    match state[0].kind {
+        TokenKind::Give => effect_give_parse(state),
+        TokenKind::Clear => effect_clear_parse(state),
+
+        _ => Err(Syntax(
+            ["invalid mode ", state.extract(0), " for ", NAME].concat(),
+        )),
+    }
+}
+
+pub fn ex_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "execute";
+
+    let mut subnodes = Vec::new();
+
+    while !state.exceed(0) {
+        aux::check_presence(state, 1, "mode", NAME)?;
+
+        match state[0].kind {
+            TokenKind::Align => subnodes.push(ex_align_parse(state)?),
+            TokenKind::Anchored => subnodes.push(ex_anchored_parse(state)?),
+            TokenKind::As => subnodes.push(ex_ent_parse(state, Command::ExAs, false)?),
+            TokenKind::At => subnodes.push(ex_ent_parse(state, Command::ExAt, false)?),
+            TokenKind::Facing => subnodes.push(ex_facing_parse(state)?),
+            TokenKind::If => subnodes.push(ex_condition_parse(state)?),
+            TokenKind::Pos => subnodes.push(ex_pos_parse(state)?),
+            TokenKind::Run => {
+                return Ok(Node::Execute {
+                    args: Vec::new(),
+                    command: Command::Ex,
+                    subnodes,
+                    run_node: Box::new(ex_run_parse(state)?),
+                });
+            }
+            TokenKind::Store => subnodes.push(ex_store_parse(state)?),
+            TokenKind::Uninited => subnodes.push(ex_uninited_parse(state)?),
+            TokenKind::Unless => subnodes.push(ex_condition_parse(state)?),
+
+            _ => {
+                return Err(Syntax(
+                    ["invalid ", NAME, " mode", state.extract(0)].concat(),
+                ));
+            }
+        }
+    }
+
+    Err(Syntax(["run command not found for ", NAME].concat()))
+}
+
+pub fn fill_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "fill";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "first coordinate", NAME)?;
+    capture_coords(state, &mut args, 6, "fill")?;
+
+    aux::check_token(state, 1, "block", NAME, aux::valid_id)?;
+    let id_with_data_ptr = data::parse_id_with_data(state)?;
+
+    aux::check_token(
+        state,
+        1,
+        "mode",
+        NAME,
+        make_check_kind!(TokenKind::Keep | TokenKind::Replace),
+    )?;
+    args.push(state[0].base);
+
+    if !state.exceed(1) && state[1].kind == TokenKind::Id {
+        *state += 1;
+        args.push(state[0].base);
+    }
+
+    Ok(Node::IdWithDataPtr {
+        args,
+        command: Command::Fill,
+        id_with_data_ptr,
+    })
+}
+
+pub fn fn_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "fn";
+
+    aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
+    let mut args = vec![state[0].base];
+
+    if !state.exceed(1) && state[1].kind == TokenKind::Id {
+        *state += 1;
+        args.push(state[0].base);
+    }
+
+    Ok(Node::Base {
+        args,
+        command: Command::Fn,
+    })
+}
+
+pub fn gm_parse(state: &mut State) -> Result<Node> {
+    use TokenKind::*;
+
+    const NAME: &str = "gm";
+
+    aux::check_token(
+        state,
+        1,
+        "mode",
+        NAME,
+        make_check_kind!(Adventure | Creative | Spectator | Survival),
+    )?;
+    let mut args = vec![state[0].base];
+
+    aux::check_presence(state, 1, "player", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Gm,
+        selector,
+    })
+}
+
+pub fn gamerule_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "gamerule";
+
+    aux::check_token(state, 1, "rule", NAME, aux::valid_id)?;
+    aux::check_token(state, 1, "value", NAME, aux::valid_value)?;
+
+    let args = vec![state[-1].base, state[0].base];
+
+    Ok(Node::Base {
+        args,
+        command: Command::Gamerule,
+    })
+}
+
+pub fn give_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "give";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_token(state, 1, "item name", NAME, aux::valid_id)?;
+    let id_with_data_ptr = data::parse_id_with_data(state)?;
+
+    if !state.exceed(1) && state[1].kind == TokenKind::Numeric {
+        *state += 1;
+        args.push(state[0].base);
+    }
+
+    Ok(Node::SelectorIdWithDataPtr(Box::new(
+        crate::synt::node::SelectorIdWithDataPtrNode {
+            args,
+            command: Command::Give,
+            selector,
+            id_with_data_ptr,
+        },
+    )))
+}
+
+pub fn kill_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "kill";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Kill,
+        selector,
+    })
+}
+
+pub fn native_parse(state: &mut State) -> Result<Node> {
+    simple_command(state, "native", aux::valid_string, Command::Native)
+}
+
+pub fn ptc_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "particle";
+
+    aux::check_token(state, 1, "particle name", NAME, aux::valid_id)?;
+    let id_with_data_ptr = data::parse_id_with_data(state)?;
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "first coordinate", NAME)?;
+    capture_coords(state, &mut args, 8, NAME)?;
+
+    aux::check_token(
+        state,
+        1,
+        "mode",
+        NAME,
+        make_check_kind!(TokenKind::Normal | TokenKind::Force),
+    )?;
+    args.push(state[0].base);
+
+    Ok(Node::IdWithDataPtr {
+        args,
+        command: Command::Ptc,
+        id_with_data_ptr,
+    })
+}
+
+pub fn pls_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "pls";
+
+    aux::check_token(state, 1, "sound name", NAME, aux::valid_id)?;
+    let mut args = vec![state[0].base];
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_presence(state, 1, "first coordinate", NAME)?;
+    capture_coords(state, &mut args, 3, NAME)?;
+
+    aux::check_token(state, 1, "volume", NAME, aux::valid_numeric)?;
+    args.push(state[0].base);
+
+    aux::check_token(state, 1, "pitch", NAME, aux::valid_numeric)?;
+    args.push(state[0].base);
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Pls,
+        selector,
+    })
+}
+
+pub fn say_parse(state: &mut State) -> Result<Node> {
+    simple_command(state, "say", aux::valid_value, Command::Say)
+}
+
+pub fn scb_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "scb";
+
+    aux::check_presence(state, 1, "mode", NAME)?;
+
+    match state[0].kind {
+        TokenKind::Players => scb_players_parse(state),
+        TokenKind::Obj => scb_objectives_parse(state),
+
+        _ => Err(Syntax(["invalid ", NAME, " mode"].concat())),
+    }
+}
+
+pub fn setblock_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "setblock";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "first coordinate", NAME)?;
+    capture_coords(state, &mut args, 3, NAME)?;
+
+    aux::check_token(state, 1, "block", NAME, aux::valid_id)?;
+    let id_with_data_ptr = data::parse_id_with_data(state)?;
+
+    aux::check_token(
+        state,
+        1,
+        "mode",
+        NAME,
+        make_check_kind!(TokenKind::Destroy | TokenKind::Keep | TokenKind::Replace),
+    )?;
+    args.push(state[0].base);
+
+    Ok(Node::IdWithDataPtr {
+        args,
+        command: Command::Setblock,
+        id_with_data_ptr,
+    })
+}
+
+pub fn spawnpoint_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "spawnpoint";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_presence(state, 1, "first coordinate", NAME)?;
+    capture_coords(state, &mut args, 3, NAME)?;
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Spawnpoint,
+        selector,
+    })
+}
+
+pub fn spectate_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "spectate";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Spectate,
+        selector,
+    })
+}
+
+pub fn stopsound_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "stopsound";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_token(state, 1, "sound name", NAME, aux::valid_id)?;
+    args.push(state[0].base);
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Stopsound,
+        selector,
+    })
+}
+
+pub fn sm_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "sm";
+
+    aux::check_token(state, 1, "entity", NAME, aux::valid_id)?;
+    let id_with_data_ptr = data::parse_id_with_data(state)?;
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "first coordinate", NAME)?;
+    capture_coords(state, &mut args, 3, NAME)?;
+
+    Ok(Node::IdWithDataPtr {
+        args,
+        command: Command::Sm,
+        id_with_data_ptr,
+    })
+}
+
+pub fn tag_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "tag";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_token(
+        state,
+        1,
+        "mode",
+        NAME,
+        make_check_kind!(TokenKind::Add | TokenKind::Remove),
+    )?;
+    args.push(state[0].base);
+
+    aux::check_token(state, 1, "tag name", NAME, aux::valid_value)?;
+    args.push(state[0].base);
+
+    Ok(Node::Selector {
+        args,
+        command: Command::Tag,
+        selector,
+    })
+}
+
+pub fn team_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "team";
+
+    aux::check_presence(state, 1, "mode", NAME)?;
+
+    match state[0].kind {
+        TokenKind::Add => team_add_parse(state),
+        TokenKind::Join => team_join_parse(state),
+        TokenKind::Modify => team_modify_parse(state),
+
+        _ => Err(Syntax(
+            ["invalid mode ", state.extract(0), " for ", NAME].concat(),
+        )),
+    }
+}
+
+pub fn tellraw_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "tellraw";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, true)?;
+
+    aux::check_token(state, 1, "text", NAME, aux::valid_text)?;
+    let text = text::parse_text(state)?;
+
+    Ok(Node::SelectorText(Box::new(SelectorTextNode {
+        args,
+        command: Command::Tellraw,
+        selector,
+        text,
+    })))
+}
+
+pub fn time_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "time";
+
+    aux::check_token(state, 1, "mode", NAME, aux::valid_id)?;
+    aux::check_token(state, 1, "value", NAME, aux::valid_value)?;
+
+    Ok(Node::Base {
+        args: vec![state[-1].base, state[0].base],
+        command: Command::Time,
+    })
+}
+
+pub fn title_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "title";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "entity", NAME)?;
+    let selector = capture_entity(state, &mut args, NAME, false)?;
+
+    aux::check_token(
+        state,
+        1,
+        "mode",
+        NAME,
+        make_check_kind!(TokenKind::Subtitle | TokenKind::Title),
+    )?;
+    args.push(state[0].base);
+
+    aux::check_token(state, 1, "text", NAME, aux::valid_text)?;
+    let text = text::parse_text(state)?;
+
+    Ok(Node::SelectorText(Box::new(SelectorTextNode {
+        args,
+        command: Command::Title,
+        selector,
+        text,
+    })))
+}
+
+pub fn tp_parse(state: &mut State) -> Result<Node> {
+    const NAME: &str = "tp";
+
+    let mut args = Vec::new();
+
+    aux::check_presence(state, 1, "first entity or first coordinate", NAME)?;
+    let selector1 = capture_entity_or_coords(state, &mut args, NAME)?;
+
+    let selector2 = if args.len() < 3 // entity captured
+        && !state.exceed(1)
+        && (state[1].category == TokenCategory::Selector
+            || state[1].kind == TokenKind::Id
+            || aux::valid_coordinate(state[1]))
+    {
+        aux::check_presence(state, 1, "second entity or first coordinate", NAME)?;
+        capture_entity_or_coords(state, &mut args, NAME)?
+    } else {
+        Selector::new_empty()
+    };
+
+    Ok(Node::DoubleSelector(Box::new(DoubleSelectorNode {
+        args,
+        command: Command::Tp,
+        selector1,
+        selector2,
+    })))
 }
 
 fn simple_command(
@@ -132,7 +793,7 @@ fn ex_ent_parse(state: &mut State, command: Command, is_if: bool) -> Result<Node
 fn capture_coords(
     state: &mut State,
     args: &mut Vec<BaseToken>,
-    count: IndexType,
+    count: Index,
     name: &str,
 ) -> Result<()> {
     args.push(capture_coordinate(state)?);
@@ -347,7 +1008,7 @@ fn ex_store_parse(state: &mut State) -> Result<Node> {
 
     match state[0].kind {
         TokenKind::Bossbar => ex_store_bossbar_parse(state),
-        TokenKind::Entity => ex_store_entity_parse(state),
+        TokenKind::Ent => ex_store_entity_parse(state),
         TokenKind::Score => ex_store_score_parse(state),
         TokenKind::Storage => ex_store_storage_parse(state),
 
@@ -386,7 +1047,7 @@ fn scb_players_parse(state: &mut State) -> Result<Node> {
         1,
         "mode",
         NAME,
-        make_check_kind!(Set | Add | Get | Operation | Remove | Reset),
+        make_check_kind!(Set | Add | Get | Opr | Remove | Reset),
     )?;
 
     let mode = state[0].kind;
@@ -398,7 +1059,7 @@ fn scb_players_parse(state: &mut State) -> Result<Node> {
     aux::check_token(state, 1, "objective", NAME, aux::valid_id)?;
     args.push(state[0].base);
 
-    if mode == Operation {
+    if mode == Opr {
         const NAME: &str = "scb players operation";
 
         aux::check_token(state, 1, "operator", NAME, aux::valid_operator)?;
@@ -523,7 +1184,7 @@ fn ex_condition_parse(state: &mut State) -> Result<Node> {
 
     match state[0].kind {
         TokenKind::Block => ex_block_parse(state, is_if),
-        TokenKind::Entity => ex_ent_parse(state, Command::ExEnt, is_if),
+        TokenKind::Ent => ex_ent_parse(state, Command::ExEnt, is_if),
         TokenKind::Items => {
             name.push_str(" items");
 
@@ -531,7 +1192,7 @@ fn ex_condition_parse(state: &mut State) -> Result<Node> {
 
             match state[0].kind {
                 TokenKind::Block => ex_items_block_parse(state, is_if),
-                TokenKind::Entity => ex_items_ent_parse(state, is_if),
+                TokenKind::Ent => ex_items_ent_parse(state, is_if),
 
                 _ => Err(Syntax(
                     ["unknown mode ", state.extract(0), " for ", &name].concat(),
@@ -791,663 +1452,4 @@ fn bossbar_remove_parse(state: &mut State) -> Result<Node> {
         aux::valid_value,
         Command::BossbarRemove,
     )
-}
-
-pub fn choose_parse(state: &mut State) -> Result<Node> {
-    match state[0].kind {
-        TokenKind::Advancement => advancement_parse(state),
-        TokenKind::Attribute => attribute_parse(state),
-        TokenKind::Bossbar => bossbar_parse(state),
-        TokenKind::Clear => clear_parse(state),
-        TokenKind::Clone => clone_parse(state),
-        TokenKind::Damage => damage_parse(state),
-        TokenKind::Data => data_parse(state),
-        TokenKind::Effect => effect_parse(state),
-        TokenKind::Execute => ex_parse(state),
-        TokenKind::Fill => fill_parse(state),
-        TokenKind::Function => fn_parse(state),
-        TokenKind::Gamemode => gm_parse(state),
-        TokenKind::Gamerule => gamerule_parse(state),
-        TokenKind::Give => give_parse(state),
-        TokenKind::Kill => kill_parse(state),
-        TokenKind::Native => native_parse(state),
-        TokenKind::Particle => ptc_parse(state),
-        TokenKind::Playsound => pls_parse(state),
-        TokenKind::Say => say_parse(state),
-        TokenKind::Scoreboard => scb_parse(state),
-        TokenKind::Setblock => setblock_parse(state),
-        TokenKind::Spawnpoint => spawnpoint_parse(state),
-        TokenKind::Spectate => spectate_parse(state),
-        TokenKind::Stopsound => stopsound_parse(state),
-        TokenKind::Summon => sm_parse(state),
-        TokenKind::Tag => tag_parse(state),
-        TokenKind::Team => team_parse(state),
-        TokenKind::Tellraw => tellraw_parse(state),
-        TokenKind::Time => time_parse(state),
-        TokenKind::Title => title_parse(state),
-        TokenKind::Tp => tp_parse(state),
-
-        _ => Err(Syntax(["unknown command ", state.extract(0)].concat())),
-    }
-}
-
-pub fn advancement_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "advancement";
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
-    args.push(state[0].base);
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Advancement,
-        selector,
-    })
-}
-
-pub fn attribute_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "attribute";
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
-    args.push(state[0].base);
-
-    aux::check_token(state, 1, "value", NAME, aux::valid_numeric)?;
-    args.push(state[0].base);
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Attribute,
-        selector,
-    })
-}
-
-pub fn bossbar_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "bossbar";
-
-    aux::check_presence(state, 1, "mode", NAME)?;
-
-    match state[0].kind {
-        TokenKind::Add => bossbar_add_parse(state),
-        TokenKind::Set => bossbar_set_parse(state),
-        TokenKind::Remove => bossbar_remove_parse(state),
-
-        _ => Err(Syntax(
-            ["invalid mode ", state.extract(0), " for bossbar"].concat(),
-        )),
-    }
-}
-
-pub fn clear_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "clear";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "player", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_token(state, 1, "item", NAME, aux::valid_id)?;
-    let id_with_data_ptr = data::parse_id_with_data(state)?;
-
-    if !state.exceed(1) && state[1].kind == TokenKind::NumericLiteral {
-        *state += 1;
-        args.push(state[0].base);
-    }
-
-    Ok(Node::SelectorIdWithDataPtr(Box::new(
-        crate::synt::node::SelectorIdWithDataPtrNode {
-            args,
-            command: Command::Clear,
-            selector,
-            id_with_data_ptr,
-        },
-    )))
-}
-
-pub fn clone_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "clone";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "first coordinate", NAME)?;
-    capture_coords(state, &mut args, 9, NAME)?;
-
-    aux::check_token(
-        state,
-        1,
-        "mode",
-        NAME,
-        make_check_kind!(TokenKind::Replace | TokenKind::Masked),
-    )?;
-    args.push(state[0].base);
-
-    if !state.exceed(1) && state[1].kind == TokenKind::Move {
-        *state += 1;
-        args.push(state[0].base);
-    }
-
-    Ok(Node::Base {
-        args,
-        command: Command::Clone,
-    })
-}
-
-pub fn damage_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "damage";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_token(state, 1, "damage amount", NAME, aux::valid_numeric)?;
-    args.push(state[0].base);
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Damage,
-        selector,
-    })
-}
-
-pub fn data_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "data";
-
-    aux::check_presence(state, 1, "mode", NAME)?;
-
-    match state[0].kind {
-        TokenKind::Get => data_get_parse(state),
-        TokenKind::Modify => data_modify_parse(state),
-
-        _ => Err(Syntax(
-            ["invalid mode ", state.extract(0), " for ", NAME].concat(),
-        )),
-    }
-}
-
-pub fn effect_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "effect";
-
-    aux::check_presence(state, 1, "mode", NAME)?;
-
-    match state[0].kind {
-        TokenKind::Give => effect_give_parse(state),
-        TokenKind::Clear => effect_clear_parse(state),
-
-        _ => Err(Syntax(
-            ["invalid mode ", state.extract(0), " for ", NAME].concat(),
-        )),
-    }
-}
-
-pub fn ex_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "execute";
-
-    let mut subnodes = Vec::new();
-
-    while !state.exceed(0) {
-        aux::check_presence(state, 1, "mode", NAME)?;
-
-        match state[0].kind {
-            TokenKind::Align => subnodes.push(ex_align_parse(state)?),
-            TokenKind::Anchored => subnodes.push(ex_anchored_parse(state)?),
-            TokenKind::As => subnodes.push(ex_ent_parse(state, Command::ExAs, false)?),
-            TokenKind::At => subnodes.push(ex_ent_parse(state, Command::ExAt, false)?),
-            TokenKind::Facing => subnodes.push(ex_facing_parse(state)?),
-            TokenKind::If => subnodes.push(ex_condition_parse(state)?),
-            TokenKind::Positioned => subnodes.push(ex_pos_parse(state)?),
-            TokenKind::Run => {
-                return Ok(Node::Execute {
-                    args: Vec::new(),
-                    command: Command::Ex,
-                    subnodes,
-                    run_node: Box::new(ex_run_parse(state)?),
-                });
-            }
-            TokenKind::Store => subnodes.push(ex_store_parse(state)?),
-            TokenKind::Uninited => subnodes.push(ex_uninited_parse(state)?),
-            TokenKind::Unless => subnodes.push(ex_condition_parse(state)?),
-
-            _ => {
-                return Err(Syntax(
-                    ["invalid ", NAME, " mode", state.extract(0)].concat(),
-                ));
-            }
-        }
-    }
-
-    Err(Syntax(["run command not found for ", NAME].concat()))
-}
-
-pub fn fill_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "fill";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "first coordinate", NAME)?;
-    capture_coords(state, &mut args, 6, "fill")?;
-
-    aux::check_token(state, 1, "block", NAME, aux::valid_id)?;
-    let id_with_data_ptr = data::parse_id_with_data(state)?;
-
-    aux::check_token(
-        state,
-        1,
-        "mode",
-        NAME,
-        make_check_kind!(TokenKind::Keep | TokenKind::Replace),
-    )?;
-    args.push(state[0].base);
-
-    if !state.exceed(1) && state[1].kind == TokenKind::Identifier {
-        *state += 1;
-        args.push(state[0].base);
-    }
-
-    Ok(Node::IdWithDataPtr {
-        args,
-        command: Command::Fill,
-        id_with_data_ptr,
-    })
-}
-
-pub fn fn_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "fn";
-
-    aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
-    let mut args = vec![state[0].base];
-
-    if !state.exceed(1) && state[1].kind == TokenKind::Identifier {
-        *state += 1;
-        args.push(state[0].base);
-    }
-
-    Ok(Node::Base {
-        args,
-        command: Command::Fn,
-    })
-}
-
-pub fn gm_parse(state: &mut State) -> Result<Node> {
-    use TokenKind::*;
-
-    const NAME: &str = "gm";
-
-    aux::check_token(
-        state,
-        1,
-        "mode",
-        NAME,
-        make_check_kind!(Adventure | Creative | Spectator | Survival),
-    )?;
-    let mut args = vec![state[0].base];
-
-    aux::check_presence(state, 1, "player", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Gm,
-        selector,
-    })
-}
-
-pub fn gamerule_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "gamerule";
-
-    aux::check_token(state, 1, "rule", NAME, aux::valid_id)?;
-    aux::check_token(state, 1, "value", NAME, aux::valid_value)?;
-
-    let args = vec![state[-1].base, state[0].base];
-
-    Ok(Node::Base {
-        args,
-        command: Command::Gamerule,
-    })
-}
-
-pub fn give_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "give";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_token(state, 1, "item name", NAME, aux::valid_id)?;
-    let id_with_data_ptr = data::parse_id_with_data(state)?;
-
-    if !state.exceed(1) && state[1].kind == TokenKind::NumericLiteral {
-        *state += 1;
-        args.push(state[0].base);
-    }
-
-    Ok(Node::SelectorIdWithDataPtr(Box::new(
-        crate::synt::node::SelectorIdWithDataPtrNode {
-            args,
-            command: Command::Give,
-            selector,
-            id_with_data_ptr,
-        },
-    )))
-}
-
-pub fn kill_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "kill";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Kill,
-        selector,
-    })
-}
-
-pub fn native_parse(state: &mut State) -> Result<Node> {
-    simple_command(state, "native", aux::valid_string, Command::Native)
-}
-
-pub fn ptc_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "particle";
-
-    aux::check_token(state, 1, "particle name", NAME, aux::valid_id)?;
-    let id_with_data_ptr = data::parse_id_with_data(state)?;
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "first coordinate", NAME)?;
-    capture_coords(state, &mut args, 8, NAME)?;
-
-    aux::check_token(
-        state,
-        1,
-        "mode",
-        NAME,
-        make_check_kind!(TokenKind::Normal | TokenKind::Force),
-    )?;
-    args.push(state[0].base);
-
-    Ok(Node::IdWithDataPtr {
-        args,
-        command: Command::Ptc,
-        id_with_data_ptr,
-    })
-}
-
-pub fn pls_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "pls";
-
-    aux::check_token(state, 1, "sound name", NAME, aux::valid_id)?;
-    let mut args = vec![state[0].base];
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_presence(state, 1, "first coordinate", NAME)?;
-    capture_coords(state, &mut args, 3, NAME)?;
-
-    aux::check_token(state, 1, "volume", NAME, aux::valid_numeric)?;
-    args.push(state[0].base);
-
-    aux::check_token(state, 1, "pitch", NAME, aux::valid_numeric)?;
-    args.push(state[0].base);
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Pls,
-        selector,
-    })
-}
-
-pub fn say_parse(state: &mut State) -> Result<Node> {
-    simple_command(state, "say", aux::valid_value, Command::Say)
-}
-
-pub fn scb_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "scb";
-
-    aux::check_presence(state, 1, "mode", NAME)?;
-
-    match state[0].kind {
-        TokenKind::Players => scb_players_parse(state),
-        TokenKind::Objectives => scb_objectives_parse(state),
-
-        _ => Err(Syntax(["invalid ", NAME, " mode"].concat())),
-    }
-}
-
-pub fn setblock_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "setblock";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "first coordinate", NAME)?;
-    capture_coords(state, &mut args, 3, NAME)?;
-
-    aux::check_token(state, 1, "block", NAME, aux::valid_id)?;
-    let id_with_data_ptr = data::parse_id_with_data(state)?;
-
-    aux::check_token(
-        state,
-        1,
-        "mode",
-        NAME,
-        make_check_kind!(TokenKind::Destroy | TokenKind::Keep | TokenKind::Replace),
-    )?;
-    args.push(state[0].base);
-
-    Ok(Node::IdWithDataPtr {
-        args,
-        command: Command::Setblock,
-        id_with_data_ptr,
-    })
-}
-
-pub fn spawnpoint_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "spawnpoint";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_presence(state, 1, "first coordinate", NAME)?;
-    capture_coords(state, &mut args, 3, NAME)?;
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Spawnpoint,
-        selector,
-    })
-}
-
-pub fn spectate_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "spectate";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Spectate,
-        selector,
-    })
-}
-
-pub fn stopsound_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "stopsound";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_token(state, 1, "sound name", NAME, aux::valid_id)?;
-    args.push(state[0].base);
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Stopsound,
-        selector,
-    })
-}
-
-pub fn sm_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "sm";
-
-    aux::check_token(state, 1, "entity", NAME, aux::valid_id)?;
-    let id_with_data_ptr = data::parse_id_with_data(state)?;
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "first coordinate", NAME)?;
-    capture_coords(state, &mut args, 3, NAME)?;
-
-    Ok(Node::IdWithDataPtr {
-        args,
-        command: Command::Sm,
-        id_with_data_ptr,
-    })
-}
-
-pub fn tag_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "tag";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_token(
-        state,
-        1,
-        "mode",
-        NAME,
-        make_check_kind!(TokenKind::Add | TokenKind::Remove),
-    )?;
-    args.push(state[0].base);
-
-    aux::check_token(state, 1, "tag name", NAME, aux::valid_value)?;
-    args.push(state[0].base);
-
-    Ok(Node::Selector {
-        args,
-        command: Command::Tag,
-        selector,
-    })
-}
-
-pub fn team_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "team";
-
-    aux::check_presence(state, 1, "mode", NAME)?;
-
-    match state[0].kind {
-        TokenKind::Add => team_add_parse(state),
-        TokenKind::Join => team_join_parse(state),
-        TokenKind::Modify => team_modify_parse(state),
-
-        _ => Err(Syntax(
-            ["invalid mode ", state.extract(0), " for ", NAME].concat(),
-        )),
-    }
-}
-
-pub fn tellraw_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "tellraw";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, true)?;
-
-    aux::check_token(state, 1, "text", NAME, aux::valid_text)?;
-    let text = text::parse_text(state)?;
-
-    Ok(Node::SelectorText(Box::new(SelectorTextNode {
-        args,
-        command: Command::Tellraw,
-        selector,
-        text,
-    })))
-}
-
-pub fn time_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "time";
-
-    aux::check_token(state, 1, "mode", NAME, aux::valid_id)?;
-    aux::check_token(state, 1, "value", NAME, aux::valid_value)?;
-
-    Ok(Node::Base {
-        args: vec![state[-1].base, state[0].base],
-        command: Command::Time,
-    })
-}
-
-pub fn title_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "title";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "entity", NAME)?;
-    let selector = capture_entity(state, &mut args, NAME, false)?;
-
-    aux::check_token(
-        state,
-        1,
-        "mode",
-        NAME,
-        make_check_kind!(TokenKind::Subtitle | TokenKind::Title),
-    )?;
-    args.push(state[0].base);
-
-    aux::check_token(state, 1, "text", NAME, aux::valid_text)?;
-    let text = text::parse_text(state)?;
-
-    Ok(Node::SelectorText(Box::new(SelectorTextNode {
-        args,
-        command: Command::Title,
-        selector,
-        text,
-    })))
-}
-
-pub fn tp_parse(state: &mut State) -> Result<Node> {
-    const NAME: &str = "tp";
-
-    let mut args = Vec::new();
-
-    aux::check_presence(state, 1, "first entity or first coordinate", NAME)?;
-    let selector1 = capture_entity_or_coords(state, &mut args, NAME)?;
-
-    let selector2 = if args.len() < 3 // entity captured
-        && !state.exceed(1)
-        && (state[1].category == TokenCategory::Selector
-            || state[1].kind == TokenKind::Identifier
-            || aux::valid_coordinate(state[1]))
-    {
-        aux::check_presence(state, 1, "second entity or first coordinate", NAME)?;
-        capture_entity_or_coords(state, &mut args, NAME)?
-    } else {
-        Selector::new_empty()
-    };
-
-    Ok(Node::DoubleSelector(Box::new(DoubleSelectorNode {
-        args,
-        command: Command::Tp,
-        selector1,
-        selector2,
-    })))
 }

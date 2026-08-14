@@ -10,15 +10,15 @@ pub fn capture_token(
 ) -> Result<Token> {
     if matches!(
         category,
-        TokenCategory::Selector
+        TokenCategory::Control
             | TokenCategory::Operator
-            | TokenCategory::Control
+            | TokenCategory::Selector
             | TokenCategory::Special
     ) {
-        capture_short_token(source_code, category, start_pos)
-    } else {
-        capture_long_token(source_code, category, start_pos)
+        return capture_short_token(source_code, category, start_pos);
     }
+
+    capture_long_token(source_code, category, start_pos)
 }
 
 fn capture_short_token(
@@ -128,10 +128,10 @@ fn valid_string_char(c: u8, finished: &mut bool) -> bool {
 
 fn token_kind(token_body: &[u8]) -> TokenKind {
     if token_body.len() <= 8 {
-        token::short_token_kind(token_body)
-    } else {
-        token::long_token_kind(token_body)
+        return token::short_token_kind(token_body);
     }
+
+    token::long_token_kind(token_body)
 }
 
 fn capture_long_token(
@@ -164,18 +164,18 @@ fn capture_long_token(
             break;
         }
 
-        let is_valid_char = match category {
-            TokenCategory::Keyword => valid_keyword_char(source_code[end_pos]),
+        let is_valid_char = sorted_match! { match category {
             TokenCategory::Id => valid_id_char(source_code[end_pos]),
+            TokenCategory::Invalid => !source_code[end_pos].is_ascii_whitespace(),
+            TokenCategory::Keyword => valid_keyword_char(source_code[end_pos]),
             TokenCategory::Numeric => valid_numeric_char(source_code[end_pos], &mut state),
             TokenCategory::String => valid_string_char(source_code[end_pos], &mut state),
-            TokenCategory::Invalid => !source_code[end_pos].is_ascii_whitespace(),
 
             _ => {
                 return Err(Lexic(
                     "invalid token category in capture_long_token() (internal)".to_string(),
                 ));
-            }
+            }}
         };
 
         if !is_valid_char {

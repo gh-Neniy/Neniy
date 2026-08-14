@@ -1,14 +1,17 @@
+use sorted_code::sorted_enum;
+
 use crate::lexic::token::BaseToken;
 
 use super::{aux::List, data::IdWithDataPtr, selector::Selector, text::Text};
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[sorted_enum]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum Command {
     Advancement,
     Attribute,
     BossbarAdd,
-    BossbarSet,
     BossbarRemove,
+    BossbarSet,
     Clear,
     Clone,
     Damage,
@@ -20,36 +23,36 @@ pub enum Command {
     ExAnchored,
     ExAs,
     ExAt,
+    ExBlock,
+    ExEnt,
     ExFacing,
+    ExItemsBlock,
+    ExItemsEnt,
     ExPos,
+    ExScore,
     ExStoreBossbar,
     ExStoreEnt,
     ExStoreScore,
     ExStoreStorage,
     ExUninited,
-    ExBlock,
-    ExEnt,
-    ExItemsBlock,
-    ExItemsEnt,
-    ExScore,
     Fill,
     Fn,
-    Gm,
     Gamerule,
     Give,
+    Gm,
     Kill,
     Native,
-    Ptc,
     Pls,
+    Ptc,
     Say,
     ScbObjAdd,
     ScbObjSet,
     ScbPlayers,
     Setblock,
+    Sm,
     Spawnpoint,
     Spectate,
     Stopsound,
-    Sm,
     Tag,
     TeamAdd,
     TeamJoin,
@@ -60,6 +63,8 @@ pub enum Command {
     Tp,
 }
 
+#[sorted_enum]
+#[derive(Debug)]
 pub enum Node {
     Base {
         args: Vec<BaseToken>,
@@ -98,6 +103,7 @@ pub enum Node {
     }, // 49 bytes
 }
 
+#[derive(Debug)]
 pub struct DoubleSelectorNode {
     pub args: Vec<BaseToken>,
     pub command: Command,
@@ -105,6 +111,7 @@ pub struct DoubleSelectorNode {
     pub selector2: Selector,
 }
 
+#[derive(Debug)]
 pub struct SelectorIdWithDataPtrNode {
     pub args: Vec<BaseToken>,
     pub command: Command,
@@ -112,6 +119,7 @@ pub struct SelectorIdWithDataPtrNode {
     pub id_with_data_ptr: IdWithDataPtr,
 }
 
+#[derive(Debug)]
 pub struct SelectorListNode {
     pub args: Vec<BaseToken>,
     pub command: Command,
@@ -119,6 +127,7 @@ pub struct SelectorListNode {
     pub list: List,
 }
 
+#[derive(Debug)]
 pub struct SelectorTextNode {
     pub args: Vec<BaseToken>,
     pub command: Command,

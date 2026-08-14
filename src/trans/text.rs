@@ -54,12 +54,18 @@ fn translate_unit(node_view: &mut NodeView, unit: &TextUnit) {
         node_view.extend([",color:\"", node_view.extract_token(unit.color), "\""]);
     }
 
+    let font = if unit.hieroglyph {
+        "\"minecraft:alt\""
+    } else {
+        "\"minecraft:uniform\""
+    };
+
     node_view.extend([
         ",italic:",
         aux::translate_bool(unit.italic),
         ",bold:",
         aux::translate_bool(unit.bold),
         ",font:",
-        aux::translate_bool(unit.hieroglyph),
+        font,
     ]);
 }

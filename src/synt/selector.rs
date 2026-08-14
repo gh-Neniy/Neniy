@@ -1,3 +1,5 @@
+use sorted_code::{sorted_enum, sorted_match};
+
 use super::{
     aux::{self, List, State},
     data::{self, DataPtr},
@@ -5,15 +7,18 @@ use super::{
 use crate::{
     NeniyError::Syntax,
     Result,
-    lexic::token::{BaseToken, Token, TokenCategory, TokenKind},
+    lexic::token::{BaseToken, Token, TokenKind},
 };
 
+#[sorted_enum]
+#[derive(Debug)]
 pub enum SelectorValue {
-    Value(BaseToken),
     Data(DataPtr),
     List(List),
+    Value(BaseToken),
 }
 
+#[derive(Debug)]
 pub struct SelectorUnit {
     pub key: Token,
     pub value: SelectorValue,
@@ -25,48 +30,42 @@ impl SelectorUnit {
     }
 }
 
+#[derive(Debug)]
 pub struct Selector {
-    pub stem: Token,
+    pub kind: TokenKind,
     pub units: Vec<SelectorUnit>,
 }
 
 impl Selector {
     pub fn new_empty() -> Self {
         Selector {
-            stem: Token {
-                base: BaseToken::new_empty(),
-                kind: TokenKind::Identifier,
-                category: TokenCategory::Identifier,
-            },
+            kind: TokenKind::Id,
             units: Vec::new(),
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.stem.base.is_empty()
-            && self.stem.kind == TokenKind::Identifier
-            && self.stem.category == TokenCategory::Identifier
-            && self.units.is_empty()
+        self.kind == TokenKind::Id
     }
 }
 
 pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
-    let stem = state[0];
+    let kind = state[0].kind;
 
     if state.exceed(1)
         || state[1].kind != TokenKind::OpeningSquareBrace
         || (look_ahead && !have_next_text_block(state)?)
     {
         return Ok(Selector {
-            stem,
+            kind,
             units: Vec::new(),
         });
     }
 
     let mut units = Vec::new();
-
     *state += 2; // on first token after '['
-    while !state.exceed(0) && state[0].kind != TokenKind::ClosingSquareBrace {
+
+    while !state.is_empty() && state[0].kind != TokenKind::ClosingSquareBrace {
         if state[0].kind == TokenKind::Comma {
             *state += 1;
             continue;
@@ -77,11 +76,11 @@ pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
         *state += 1;
     }
 
-    if state.exceed(0) {
+    if state.is_empty() {
         return Err(Syntax("']' not found in selector parse".to_string()));
     }
 
-    Ok(Selector { stem, units })
+    Ok(Selector { kind, units })
 }
 
 fn capture_id_item(state: &mut State) -> Result<SelectorUnit> {
@@ -129,7 +128,7 @@ fn capture_numeric_item(state: &mut State) -> Result<SelectorUnit> {
     ))
 }
 
-fn capture_list_type_item(state: &mut State) -> Result<SelectorUnit> {
+fn capture_list_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "list unit", aux::valid_data)?;
 
     Ok(SelectorUnit::new(
@@ -139,22 +138,20 @@ fn capture_list_type_item(state: &mut State) -> Result<SelectorUnit> {
 }
 
 fn capture_item(state: &mut State) -> Result<SelectorUnit> {
-    match state[0].kind {
-        TokenKind::Distance => capture_range_item(state),
-        TokenKind::Data => capture_data_item(state),
-        TokenKind::Dx | TokenKind::Dy | TokenKind::Dz => capture_numeric_item(state),
-        TokenKind::Gamemode => capture_id_item(state),
-        TokenKind::Limit => capture_numeric_item(state),
-        TokenKind::Score => capture_list_type_item(state),
-        TokenKind::Sort => capture_id_item(state),
-        TokenKind::Tag => capture_value_item(state),
-        TokenKind::Team | TokenKind::Type => capture_id_item(state),
-        TokenKind::XRotation | TokenKind::YRotation => capture_range_item(state),
+    use TokenKind::*;
+
+    sorted_match! { match state[0].kind {
+        Data => capture_data_item(state),
+        Distance | XRotation | YRotation => capture_range_item(state),
+        Dx | Dy | Dz | Limit => capture_numeric_item(state),
+        Gm | Sort | Team | Type => capture_id_item(state),
+        Score => capture_list_item(state),
+        Tag => capture_value_item(state),
 
         _ => Err(Syntax(
             ["unknown key ", state.extract(0), " in selector unit"].concat(),
         )),
-    }
+    }}
 }
 
 // state[0] on selector

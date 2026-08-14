@@ -1,3 +1,5 @@
+use sorted_code::sorted_match;
+
 use super::aux::{self, State};
 use crate::{
     NeniyError::Syntax,
@@ -11,41 +13,22 @@ pub struct TextUnit {
     pub color: BaseToken,
     pub bold: bool,
     pub italic: bool,
-    pub hieroglyph: bool,
+    pub alt: bool,
 }
 
 impl TextUnit {
-    pub fn new(
-        source: BaseToken,
-        color: BaseToken,
-        bold: bool,
-        italic: bool,
-        hieroglyph: bool,
-    ) -> Self {
+    pub fn new(source: BaseToken, color: BaseToken, bold: bool, italic: bool, alt: bool) -> Self {
         TextUnit {
             source,
             color,
             bold,
             italic,
-            hieroglyph,
+            alt,
         }
     }
 }
 
-#[derive(Debug)]
-pub struct Text {
-    pub units: Vec<TextUnit>,
-}
-
-impl Text {
-    pub fn new() -> Self {
-        Text { units: Vec::new() }
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.units.is_empty()
-    }
-}
+pub type Text = Vec<TextUnit>;
 
 // state[0] == '{' or '['
 pub fn parse_text(state: &mut State) -> Result<Text> {
@@ -56,13 +39,13 @@ pub fn parse_text(state: &mut State) -> Result<Text> {
             return Ok(Text::new());
         }
 
-        return Ok(Text { units: vec![unit] });
+        return Ok(vec![unit]);
     }
 
     let mut text = Text::new();
-
     *state += 1;
-    while !state.exceed(0) && state[0].kind != TokenKind::ClosingSquareBrace {
+
+    while !state.is_empty() && state[0].kind != TokenKind::ClosingSquareBrace {
         if state[0].kind == TokenKind::Comma {
             *state += 1;
             continue;
@@ -72,19 +55,24 @@ pub fn parse_text(state: &mut State) -> Result<Text> {
             let unit = capture_text_unit(state)?;
 
             if !unit.source.is_empty() {
-                text.units.push(unit);
+                text.push(unit);
             }
         } else {
             return Err(Syntax(
-                ["invalid token ", state.extract(0), " instead of '{'"].concat(),
+                [
+                    "invalid token: ",
+                    state.extract(0),
+                    " instead of '{' in text",
+                ]
+                .concat(),
             ));
         }
 
         *state += 1;
     }
 
-    if state.exceed(0) {
-        return Err(Syntax("']' not found in text parsing".to_string()));
+    if state.is_empty() {
+        return Err(Syntax("']' not found in text".to_string()));
     }
 
     Ok(text)
@@ -118,25 +106,26 @@ fn capture_text_unit(state: &mut State) -> Result<TextUnit> {
 
     *state += 1;
 
-    while !state.exceed(0) && state[0].kind != TokenKind::ClosingCurlyBrace {
-        match state[0].kind {
+    while !state.is_empty() && state[0].kind != TokenKind::ClosingCurlyBrace {
+        sorted_match! { match state[0].kind {
+            TokenKind::Alt => unit.alt = true,
             TokenKind::Bold => unit.bold = true,
             TokenKind::Color => unit.color = capture_color(state)?,
-            TokenKind::Comma => {}
-            TokenKind::Hieroglyph => unit.hieroglyph = true,
+            TokenKind::Comma => (),
             TokenKind::Italic => unit.italic = true,
             TokenKind::Text => unit.source = capture_source(state)?,
+
             _ => {
                 return Err(Syntax(
                     ["unknown key ", state.extract(0), " in text"].concat(),
                 ));
             }
-        };
+        }};
 
         *state += 1;
     }
 
-    if state.exceed(0) {
+    if state.is_empty() {
         return Err(Syntax("'}' not found in text unit".to_string()));
     }
 

@@ -1,3 +1,5 @@
+use sorted_code::sorted_fns;
+
 use super::token::TokenCategory;
 
 pub fn categorize(c: u8) -> TokenCategory {
@@ -14,14 +16,16 @@ pub fn categorize(c: u8) -> TokenCategory {
     }
 }
 
-fn is_control(c: u8) -> bool {
-    matches!(c, b',' | b'[' | b']' | b'{' | b'}')
-}
+sorted_fns! {
+    fn is_control(c: u8) -> bool {
+        matches!(c, b',' | b'[' | b']' | b'{' | b'}')
+    }
 
-fn is_operator(c: u8) -> bool {
-    matches!(c, b'+' | b'-' | b'*' | b'/' | b'<' | b'=' | b'>')
-}
+    fn is_operator(c: u8) -> bool {
+        matches!(c, b'+' | b'-' | b'*' | b'/' | b'<' | b'=' | b'>')
+    }
 
-fn is_special(c: u8) -> bool {
-    matches!(c, b'.' | b'~' | b'^')
+    fn is_special(c: u8) -> bool {
+        matches!(c, b'.' | b'~' | b'^')
+    }
 }
