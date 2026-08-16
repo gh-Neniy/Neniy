@@ -130,8 +130,8 @@ sorted_fns!(
             args.push(state[0].base);
         }
 
-        Ok(Node::SelectorIdWithDataPtr(Box::new(
-            crate::synt::node::SelectorIdWithDataPtrNode {
+        Ok(Node::SelectorIdWithData(Box::new(
+            crate::synt::node::SelectorIdWithDataNode {
                 args,
                 command: Command::Clear,
                 selector,
@@ -233,7 +233,7 @@ sorted_fns!(
                 TokenKind::If => subnodes.push(ex_condition_parse(state)?),
                 TokenKind::Pos => subnodes.push(ex_pos_parse(state)?),
                 TokenKind::Run => {
-                    return Ok(Node::Execute {
+                    return Ok(Node::Ex {
                         args: Vec::new(),
                         command: Command::Ex,
                         subnodes,
@@ -280,7 +280,7 @@ sorted_fns!(
             args.push(state[0].base);
         }
 
-        Ok(Node::IdWithDataPtr {
+        Ok(Node::IdWithData {
             args,
             command: Command::Fill,
             id_with_data_ptr,
@@ -334,8 +334,8 @@ sorted_fns!(
             args.push(state[0].base);
         }
 
-        Ok(Node::SelectorIdWithDataPtr(Box::new(
-            crate::synt::node::SelectorIdWithDataPtrNode {
+        Ok(Node::SelectorIdWithData(Box::new(
+            crate::synt::node::SelectorIdWithDataNode {
                 args,
                 command: Command::Give,
                 selector,
@@ -434,7 +434,7 @@ sorted_fns!(
         )?;
         args.push(state[0].base);
 
-        Ok(Node::IdWithDataPtr {
+        Ok(Node::IdWithData {
             args,
             command: Command::Ptc,
             id_with_data_ptr,
@@ -480,7 +480,7 @@ sorted_fns!(
         )?;
         args.push(state[0].base);
 
-        Ok(Node::IdWithDataPtr {
+        Ok(Node::IdWithData {
             args,
             command: Command::Setblock,
             id_with_data_ptr,
@@ -498,7 +498,7 @@ sorted_fns!(
         aux::check_presence(state, 1, "first coordinate", NAME)?;
         capture_coords(state, &mut args, 3, NAME)?;
 
-        Ok(Node::IdWithDataPtr {
+        Ok(Node::IdWithData {
             args,
             command: Command::Sm,
             id_with_data_ptr,
@@ -1018,7 +1018,7 @@ sorted_fns!(
 
         aux::check_token(state, 1, "block", name, aux::valid_id)?;
 
-        Ok(Node::IdWithDataPtr {
+        Ok(Node::IdWithData {
             args,
             command: Command::ExBlock,
             id_with_data_ptr: data::parse_id_with_data(state)?,

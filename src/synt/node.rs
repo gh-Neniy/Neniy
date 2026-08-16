@@ -73,14 +73,14 @@ pub enum Node {
 
     DoubleSelector(Box<DoubleSelectorNode>), // 8 bytes (instead of 89)
 
-    Execute {
+    Ex {
         args: Vec<BaseToken>,
         command: Command,
         subnodes: Vec<Node>,
         run_node: Box<Node>,
     }, // 57 bytes
 
-    IdWithDataPtr {
+    IdWithData {
         args: Vec<BaseToken>,
         command: Command,
         id_with_data_ptr: IdWithDataPtr,
@@ -92,9 +92,9 @@ pub enum Node {
         selector: Selector,
     }, // 57 bytes
 
-    SelectorIdWithDataPtr(Box<SelectorIdWithDataPtrNode>), // 8 bytes (instead of 65)
-    SelectorList(Box<SelectorListNode>),                   // 8 bytes (instead of 81)
-    SelectorText(Box<SelectorTextNode>),                   // 8 bytes (instead of 81)
+    SelectorIdWithData(Box<SelectorIdWithDataNode>), // 8 bytes (instead of 65)
+    SelectorList(Box<SelectorListNode>),             // 8 bytes (instead of 81)
+    SelectorText(Box<SelectorTextNode>),             // 8 bytes (instead of 81)
 
     Text {
         args: Vec<BaseToken>,
@@ -112,7 +112,7 @@ pub struct DoubleSelectorNode {
 }
 
 #[derive(Debug)]
-pub struct SelectorIdWithDataPtrNode {
+pub struct SelectorIdWithDataNode {
     pub args: Vec<BaseToken>,
     pub command: Command,
     pub selector: Selector,

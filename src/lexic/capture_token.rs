@@ -154,7 +154,7 @@ fn capture_long_token(
     }
 
     let mut state = false;
-    let mut end_pos = start_pos + 1; // current unchecked position
+    let mut end_pos = start_pos + 1; // current checking position
 
     while end_pos < source_code.len() {
         if category == TokenCategory::Numeric

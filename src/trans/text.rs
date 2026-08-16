@@ -1,17 +1,17 @@
 use super::aux::{self, NodeView};
 use crate::synt::text::{Text, TextUnit};
 
-pub fn translate_text(node_view: &mut NodeView, text: &Text) {
+pub fn translate_text(node_view: &mut NodeView, text: &[TextUnit]) {
     if text.is_empty() {
         node_view.push_str("{text:\"\"}");
         return;
     }
 
-    let mut iter = text.units.iter();
+    let mut iter = text.iter();
     node_view.push('{');
     translate_unit(node_view, iter.next().unwrap());
 
-    if text.units.len() == 1 {
+    if text.len() == 1 {
         node_view.push('}');
         return;
     }
@@ -48,13 +48,13 @@ pub fn translate_lore(node_view: &mut NodeView, lore: &[Text]) {
 }
 
 fn translate_unit(node_view: &mut NodeView, unit: &TextUnit) {
-    node_view.extend(["text:\"", node_view.extract_token(unit.source), "\""]);
+    node_view.extend(["text:\"", node_view.extract(unit.source), "\""]);
 
     if !unit.color.is_empty() {
-        node_view.extend([",color:\"", node_view.extract_token(unit.color), "\""]);
+        node_view.extend([",color:\"", node_view.extract(unit.color), "\""]);
     }
 
-    let font = if unit.hieroglyph {
+    let font = if unit.alt {
         "\"minecraft:alt\""
     } else {
         "\"minecraft:uniform\""
