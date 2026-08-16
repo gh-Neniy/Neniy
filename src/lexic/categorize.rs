@@ -16,7 +16,7 @@ pub fn categorize(c: u8) -> TokenCategory {
     }
 }
 
-sorted_fns! {
+sorted_fns!(
     fn is_control(c: u8) -> bool {
         matches!(c, b',' | b'[' | b']' | b'{' | b'}')
     }
@@ -28,4 +28,4 @@ sorted_fns! {
     fn is_special(c: u8) -> bool {
         matches!(c, b'.' | b'~' | b'^')
     }
-}
+);

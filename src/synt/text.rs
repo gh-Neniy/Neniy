@@ -107,7 +107,7 @@ fn capture_text_unit(state: &mut State) -> Result<TextUnit> {
     *state += 1;
 
     while !state.is_empty() && state[0].kind != TokenKind::ClosingCurlyBrace {
-        sorted_match! { match state[0].kind {
+        sorted_match!(match state[0].kind {
             TokenKind::Alt => unit.alt = true,
             TokenKind::Bold => unit.bold = true,
             TokenKind::Color => unit.color = capture_color(state)?,
@@ -120,7 +120,7 @@ fn capture_text_unit(state: &mut State) -> Result<TextUnit> {
                     ["unknown key ", state.extract(0), " in text"].concat(),
                 ));
             }
-        }};
+        });
 
         *state += 1;
     }

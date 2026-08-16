@@ -28,7 +28,7 @@ fn capture_short_token(
 ) -> Result<Token> {
     let start = start_pos as Index;
 
-    sorted_match! { match category {
+    sorted_match!(match category {
         TokenCategory::Control => Ok(Token::new(
             start,
             start,
@@ -42,7 +42,7 @@ fn capture_short_token(
         _ => Err(Lexic(
             "invalid token category in capture_short_token() (internal)".to_string(),
         )),
-    }}
+    })
 }
 
 fn capture_operator(source_code: &[u8], start_pos: usize) -> Token {
@@ -164,7 +164,7 @@ fn capture_long_token(
             break;
         }
 
-        let is_valid_char = sorted_match! { match category {
+        let is_valid_char = sorted_match!(match category {
             TokenCategory::Id => valid_id_char(source_code[end_pos]),
             TokenCategory::Invalid => !source_code[end_pos].is_ascii_whitespace(),
             TokenCategory::Keyword => valid_keyword_char(source_code[end_pos]),
@@ -175,8 +175,8 @@ fn capture_long_token(
                 return Err(Lexic(
                     "invalid token category in capture_long_token() (internal)".to_string(),
                 ));
-            }}
-        };
+            }
+        });
 
         if !is_valid_char {
             if matches!(category, TokenCategory::Keyword | TokenCategory::Numeric)
@@ -202,7 +202,7 @@ fn capture_long_token(
     let token_body = &source_code[start_pos..end_pos];
     let end = end_pos as Index - 1;
 
-    sorted_match! { match category {
+    sorted_match!(match category {
         TokenCategory::Id => Ok(Token::new(start, end, TokenKind::Id, category)),
         TokenCategory::Keyword => Ok(Token::new(start, end, token_kind(token_body), category)),
         TokenCategory::Numeric => Ok(Token::new(start, end, TokenKind::Numeric, category)),
@@ -211,5 +211,5 @@ fn capture_long_token(
         _ => Err(Lexic(
             ["invalid token ", std::str::from_utf8(token_body).unwrap()].concat(),
         )),
-    }}
+    })
 }

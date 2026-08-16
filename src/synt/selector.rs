@@ -140,7 +140,7 @@ fn capture_list_item(state: &mut State) -> Result<SelectorUnit> {
 fn capture_item(state: &mut State) -> Result<SelectorUnit> {
     use TokenKind::*;
 
-    sorted_match! { match state[0].kind {
+    sorted_match!(match state[0].kind {
         Data => capture_data_item(state),
         Distance | XRotation | YRotation => capture_range_item(state),
         Dx | Dy | Dz | Limit => capture_numeric_item(state),
@@ -151,7 +151,7 @@ fn capture_item(state: &mut State) -> Result<SelectorUnit> {
         _ => Err(Syntax(
             ["unknown key ", state.extract(0), " in selector unit"].concat(),
         )),
-    }}
+    })
 }
 
 // state[0] on selector

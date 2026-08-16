@@ -246,7 +246,7 @@ impl Token {
 pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
     // token_body.len() <= 8
 
-    sorted_consts! {
+    sorted_consts!(
         const ABOUT: u64 = hash(b"about");
         const ADD: u64 = hash(b"add");
         const ALIGN: u64 = hash(b"align");
@@ -392,9 +392,9 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const MINUS_EQUAL_OPERATOR: u64 = hash(b"-=");
         const MULT_EQUAL_OPERATOR: u64 = hash(b"*=");
         const PLUS_EQUAL_OPERATOR: u64 = hash(b"+=");
-    };
+    );
 
-    sorted_match! { match hash(token_body) {
+    sorted_match!(match hash(token_body) {
         ABOUT => TokenKind::About,
         ADD => TokenKind::Add,
         ALIGN => TokenKind::Align,
@@ -542,11 +542,11 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         PLUS_EQUAL_OPERATOR => TokenKind::PlusEqualOperator,
 
         _ => TokenKind::Id,
-    }}
+    })
 }
 
 pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
-    sorted_match! { match token_body {
+    sorted_match!(match token_body {
         b"advancement" => TokenKind::Advancement,
         b"adventure" => TokenKind::Adventure,
         b"attack_damage" => TokenKind::AttackDamage,
@@ -588,7 +588,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"y_rotation" => TokenKind::YRotation,
 
         _ => TokenKind::Id,
-    }}
+    })
 }
 
 const fn hash(token_body: &[u8]) -> u64 {

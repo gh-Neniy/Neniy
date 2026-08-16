@@ -256,7 +256,7 @@ fn capture_numeric_or_list_item(state: &mut State) -> Result<DataUnit> {
 fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
     use TokenKind::*;
 
-    sorted_match! { match state[0].kind {
+    sorted_match!(match state[0].kind {
         About | Block | Chest | Feet | Head | Id | Item | LeftHand | Legs | RightHand
         | SelectedItem => capture_id_with_data_item(state),
         AttackDamage | AttackSpeed | ChestChance | FeetChance | HeadChance | Health | Height
@@ -278,7 +278,7 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
         _ => Err(Syntax(
             ["unknown key ", state.extract(0), " in data unit"].concat(),
         )),
-    }}
+    })
 }
 
 // state[0] == '['
