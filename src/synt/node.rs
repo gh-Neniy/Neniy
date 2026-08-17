@@ -66,6 +66,7 @@ pub enum Command {
 #[sorted_enum]
 #[derive(Debug)]
 pub enum Node {
+    // could not move args and command out in a separate struct because of enum's padding
     Base {
         args: Vec<BaseToken>,
         command: Command,

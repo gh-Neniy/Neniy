@@ -148,6 +148,21 @@ impl<'a> NodeView<'a> {
         }
     }
 
+    pub fn command(&self) -> Command {
+        sorted_match!(match self.node {
+            Node::Base { command, .. }
+            | Node::Ex { command, .. }
+            | Node::IdWithData { command, .. }
+            | Node::Selector { command, .. }
+            | Node::Text { command, .. } => *command,
+
+            Node::DoubleSelector(node) => node.command,
+            Node::SelectorIdWithData(node) => node.command,
+            Node::SelectorList(node) => node.command,
+            Node::SelectorText(node) => node.command,
+        })
+    }
+
     fn error(&self, tried: &str) -> String {
         let actual = sorted_match!(match self.node {
             Node::Base { .. } => "Base",
