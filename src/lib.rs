@@ -1,3 +1,5 @@
+pub mod compile;
+pub mod input;
 pub mod lexic;
 pub mod synt;
 pub mod trans;

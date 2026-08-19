@@ -652,7 +652,8 @@ fn translate_fn(node_view: &mut NodeView, mut path: &Path) -> Result<()> {
 
     let args = node_view.as_base()?;
     let fn_body = node_view.extract(args[0]);
-    let target_path = path.join(fn_body).with_extension("neniy");
+    let mut target_path = path.join(fn_body);
+    target_path.set_extension("neniy");
 
     if !target_path.is_file() {
         return Err(Translation(["no such function: ", fn_body].concat()));
