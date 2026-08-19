@@ -590,7 +590,7 @@ fn translate_attribute_modifier(node_view: &mut NodeView, modifier: &SimpleUnit)
         name,
         "\",amount:",
         node_view.extract(modifier.value),
-        ",operation:\"add_value\",slot:mainhand\",id:\"base_",
+        ",operation:\"add_value\",slot:\"mainhand\",id:\"base_",
         name,
         "\"}",
     ]);

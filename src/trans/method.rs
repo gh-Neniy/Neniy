@@ -127,7 +127,7 @@ fn translate_ex_items_ent(node_view: &mut NodeView) -> Result<()> {
         " ",
         node_view.extract(args[current_arg]), // container
         " ",
-        node_view.extract(args[current_arg]), // item name
+        node_view.extract(args[current_arg + 1]), // item name
     ]);
 
     Ok(())
@@ -345,9 +345,15 @@ fn translate_attribute(node_view: &mut NodeView) -> Result<()> {
     let (args, selector) = node_view.as_selector()?;
     let current_arg = translate_entity(node_view, args, selector, 0)?;
 
+    let mut value = node_view.extract(args[current_arg]);
+
+    if value == "health" {
+        value = "max_health";
+    }
+
     node_view.extend([
         " ",
-        node_view.extract(args[current_arg]), // attribute name
+        value, // attribute name
         " base set ",
         node_view.extract(args[current_arg + 1]), // value
     ]);
@@ -465,7 +471,7 @@ fn translate_damage(node_view: &mut NodeView) -> Result<()> {
     node_view.extend([
         " ",
         node_view.extract(args[current_arg]), // count
-        " generic kill",
+        " generic_kill",
     ]);
 
     Ok(())
@@ -606,7 +612,7 @@ fn translate_fill(node_view: &mut NodeView) -> Result<()> {
     let (args, id_with_data) = node_view.as_id_with_data()?;
 
     node_view.extend([
-        "fill",
+        "fill ",
         node_view.extract(args[0]), // start x
         " ",
         node_view.extract(args[1]), // start y
@@ -684,7 +690,7 @@ fn translate_gm(node_view: &mut NodeView) -> Result<()> {
     let (args, selector) = node_view.as_selector()?;
 
     node_view.extend([
-        "gamemode",
+        "gamemode ",
         node_view.extract(args[0]), // mode
         " ",
     ]);
@@ -795,7 +801,7 @@ fn translate_pls(node_view: &mut NodeView) -> Result<()> {
     node_view.extend([
         "playsound ",
         node_view.extract(args[0]), // sound id
-        " neutral",
+        " neutral ",
     ]);
 
     let current_arg = translate_entity(node_view, args, selector, 1)?;
