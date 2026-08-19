@@ -50,7 +50,7 @@ pub fn compile_on_paths(paths: &[PathBuf], output_dir: &str) -> bool {
         .map(|path| match compile_on_path(path, output_dir) {
             Ok(()) => true,
             Err(error) => {
-                eprintln!("in file {}: {}", path.display(), error);
+                eprintln!("In file {}: {}", path.display(), error);
                 false
             }
         })
