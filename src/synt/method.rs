@@ -234,7 +234,6 @@ sorted_fns!(
                 TokenKind::Pos => subnodes.push(ex_pos_parse(state)?),
                 TokenKind::Run => {
                     return Ok(Node::Ex {
-                        args: Vec::new(),
                         command: Command::Ex,
                         subnodes,
                         run_node: Box::new(ex_run_parse(state)?),

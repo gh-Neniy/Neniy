@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 sorted_code = { path = "sorted_code" }
 thiserror = "2.0.19"
+rayon = "1.12.0"
 
 [workspace]
 members = ["sorted_code"]

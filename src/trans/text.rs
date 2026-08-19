@@ -7,8 +7,9 @@ pub fn translate_text(node_view: &mut NodeView, text: &[TextUnit]) {
         return;
     }
 
-    let mut iter = text.iter();
     node_view.push('{');
+
+    let mut iter = text.iter();
     translate_unit(node_view, iter.next().unwrap());
 
     if text.len() == 1 {
@@ -36,6 +37,7 @@ pub fn translate_lore(node_view: &mut NodeView, lore: &[Text]) {
     }
 
     node_view.push('[');
+
     let mut iter = lore.iter();
     translate_text(node_view, iter.next().unwrap());
 

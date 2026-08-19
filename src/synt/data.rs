@@ -46,7 +46,7 @@ pub enum DataValue {
 
 #[sorted_methods]
 impl DataValue {
-    pub fn as_data(&self) -> Result<&DataPtr> {
+    pub fn as_data(&self) -> Result<&Data> {
         if let DataValue::Data(data_ptr) = self {
             Ok(data_ptr)
         } else {
@@ -62,7 +62,7 @@ impl DataValue {
         }
     }
 
-    pub fn as_id_with_data(&self) -> Result<&IdWithDataPtr> {
+    pub fn as_id_with_data(&self) -> Result<&IdWithData> {
         if let DataValue::IdWithData(id_with_data_ptr) = self {
             Ok(id_with_data_ptr)
         } else {

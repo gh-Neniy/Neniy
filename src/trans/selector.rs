@@ -89,6 +89,5 @@ pub fn translate_selector(node_view: &mut NodeView, selector: &Selector) -> Resu
     }
 
     node_view.push(']');
-
     Ok(())
 }

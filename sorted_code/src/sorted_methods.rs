@@ -39,9 +39,11 @@ pub fn sorted_methods_impl(_attr: TokenStream, item: TokenStream) -> TokenStream
                 {
                     let mut error_msg = "Methods".to_string();
 
-                    if let Type::Path(path_type) = *input.self_ty {
-                        error_msg
-                            .extend([" of ", &path_type.path.get_ident().unwrap().to_string()]);
+                    if let Type::Path(type_path) = *input.self_ty {
+                        error_msg.extend([
+                            " of ",
+                            &type_path.path.segments.last().unwrap().ident.to_string(),
+                        ]);
                     }
 
                     error_msg.extend([" are not sorted: ", &prev_fn_name, " before ", &fn_name]);

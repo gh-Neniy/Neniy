@@ -1,3 +1,6 @@
+use sorted_code::sorted_match;
+use std::path::Path;
+
 use super::{
     aux::{self, NodeView},
     data, selector, text,
@@ -14,13 +17,13 @@ fn translate_block_data(node_view: &mut NodeView, units: &[DataUnit]) -> Result<
     let sign_msgs = data::translate_block_data(node_view, units, "=")?;
     node_view.push(']');
 
-    if !sign_msgs.is_empty() {
+    if let Some(sign_msgs) = sign_msgs {
         if sign_msgs.len() != 4 {
             return Err(Translation("sign messages length is not 4".to_string()));
         }
 
         node_view.push_str("{front_text:{messages:");
-        text::translate_lore(node_view, &sign_msgs);
+        text::translate_lore(node_view, sign_msgs);
         node_view.push_str("}}");
     }
 
@@ -46,7 +49,7 @@ fn translate_entity(
 fn translate_ex_as(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("as ");
 
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     translate_entity(node_view, args, selector, 0)?;
 
     Ok(())
@@ -55,14 +58,14 @@ fn translate_ex_as(node_view: &mut NodeView) -> Result<()> {
 fn translate_ex_at(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("at ");
 
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     translate_entity(node_view, args, selector, 0)?;
 
     Ok(())
 }
 
 fn translate_ex_block(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, id_with_data) = node_view.as_id_with_data()?;
+    let (args, id_with_data) = node_view.as_id_with_data()?;
 
     node_view.extend([
         node_view.extract(args[0]), // if | unless
@@ -84,7 +87,7 @@ fn translate_ex_block(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_ex_ent(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
 
     node_view.extend([
         node_view.extract(args[0]), // condition
@@ -97,12 +100,13 @@ fn translate_ex_ent(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_ex_items_block(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend([
         node_view.extract(args[0]), // condition
         " items block ~ ~ ~ ",
         node_view.extract(args[1]), // container
+        " ",
         node_view.extract(args[2]), // item name
     ]);
 
@@ -110,7 +114,7 @@ fn translate_ex_items_block(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_ex_items_ent(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
 
     node_view.extend([
         node_view.extract(args[0]), // condition
@@ -121,16 +125,16 @@ fn translate_ex_items_ent(node_view: &mut NodeView) -> Result<()> {
 
     node_view.extend([
         " ",
-        node_view.extract(args[current_arg as usize]), // container
+        node_view.extract(args[current_arg]), // container
         " ",
-        node_view.extract(args[current_arg as usize]), // item name
+        node_view.extract(args[current_arg]), // item name
     ]);
 
     Ok(())
 }
 
 fn translate_ex_score(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
 
     node_view.extend([
         node_view.extract(args[0]), // condition
@@ -141,9 +145,13 @@ fn translate_ex_score(node_view: &mut NodeView) -> Result<()> {
         // for operators
         node_view.extend([
             node_view.extract(args[1]), // entity
+            " ",
             node_view.extract(args[2]), // objective
+            " ",
             node_view.extract(args[3]), // operator
+            " ",
             node_view.extract(args[4]), // second entity
+            " ",
             node_view.extract(args[2]), // same objective
         ]);
 
@@ -154,19 +162,19 @@ fn translate_ex_score(node_view: &mut NodeView) -> Result<()> {
 
     node_view.extend([
         " ",
-        node_view.extract(args[current_arg as usize]), // objective
+        node_view.extract(args[current_arg]), // objective
         " matches ",
-        node_view.extract(args[current_arg as usize + 1]), // value or range
+        node_view.extract(args[current_arg + 1]), // value or range
     ]);
 
     Ok(())
 }
 
 fn translate_ex_pos(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend([
-        "positioned",
+        "positioned ",
         node_view.extract(args[0]), // x
         " ",
         node_view.extract(args[1]), // y
@@ -180,16 +188,16 @@ fn translate_ex_pos(node_view: &mut NodeView) -> Result<()> {
 fn translate_ex_store_score(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("store result score ");
 
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     let current_arg = translate_entity(node_view, args, selector, 0)?;
 
-    node_view.extend([" ", node_view.extract(args[current_arg as usize])]);
+    node_view.extend([" ", node_view.extract(args[current_arg])]);
 
     Ok(())
 }
 
 fn translate_ex_store_bossbar(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend([
         "store result bossbar ",
@@ -203,8 +211,8 @@ fn translate_ex_store_bossbar(node_view: &mut NodeView) -> Result<()> {
 fn translate_ex_store_ent(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("store result entity ");
 
-    let (args, _, selector) = node_view.as_selector()?;
-    let current_arg = translate_entity(node_view, args, selector, 0)? as usize;
+    let (args, selector) = node_view.as_selector()?;
+    let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     node_view.extend([
         " ",
@@ -219,7 +227,7 @@ fn translate_ex_store_ent(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_ex_store_storage(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend([
         "store result storage ",
@@ -238,10 +246,10 @@ fn translate_ex_store_storage(node_view: &mut NodeView) -> Result<()> {
 fn translate_ex_uninited(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("unless score ");
 
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
 
     let initial_len = node_view.result.len();
-    let current_arg = translate_entity(node_view, args, selector, 0)? as usize;
+    let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     let entity = node_view.result[initial_len..].to_string();
     let objective = node_view.extract(args[current_arg]);
@@ -254,7 +262,7 @@ fn translate_ex_uninited(node_view: &mut NodeView) -> Result<()> {
 fn translate_ex_facing(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("facing ");
 
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
 
     if selector.kind != TokenKind::Id {
         selector::translate_selector(node_view, selector)?;
@@ -273,37 +281,38 @@ fn translate_ex_facing(node_view: &mut NodeView) -> Result<()> {
     Ok(())
 }
 
-fn choose_translate(node_view: &mut NodeView) -> Result<()> {
-    match node_view.command() {
+pub fn choose_translate(node_view: &mut NodeView, path: &Path) -> Result<()> {
+    sorted_match!(match node_view.command() {
         Command::Advancement => translate_advancement(node_view),
         Command::Attribute => translate_attribute(node_view),
         Command::BossbarAdd => translate_bossbar_add(node_view),
-        Command::BossbarSet => translate_bossbar_set(node_view),
         Command::BossbarRemove => translate_bossbar_remove(node_view),
+        Command::BossbarSet => translate_bossbar_set(node_view),
         Command::Clear => translate_clear(node_view),
         Command::Clone => translate_clone(node_view),
         Command::Damage => translate_damage(node_view),
-        Command::DataGet | Command::DataModify => translate_data(node_view),
+        Command::DataGet => translate_data_get(node_view),
+        Command::DataModify => translate_data_modify(node_view),
         Command::Effect => translate_effect(node_view),
-        Command::Ex => translate_ex(node_view),
+        Command::Ex => translate_ex(node_view, path),
         Command::Fill => translate_fill(node_view),
-        //Command::Fn => translate_fn(node_view),
-        Command::Gm => translate_gm(node_view),
+        Command::Fn => translate_fn(node_view, path),
         Command::Gamerule => translate_gamerule(node_view),
         Command::Give => translate_give(node_view),
+        Command::Gm => translate_gm(node_view),
         Command::Kill => translate_kill(node_view),
         Command::Native => translate_native(node_view),
-        Command::Ptc => translate_ptc(node_view),
         Command::Pls => translate_pls(node_view),
+        Command::Ptc => translate_ptc(node_view),
         Command::Say => translate_say(node_view),
         Command::ScbObjAdd => translate_scb_obj_add(node_view),
         Command::ScbObjSet => translate_scb_obj_set(node_view),
         Command::ScbPlayers => translate_scb_players(node_view),
         Command::Setblock => translate_setblock(node_view),
+        Command::Sm => translate_sm(node_view),
         Command::Spawnpoint => translate_spawnpoint(node_view),
         Command::Spectate => translate_spectate(node_view),
         Command::Stopsound => translate_stopsound(node_view),
-        Command::Sm => translate_sm(node_view),
         Command::Tag => translate_tag(node_view),
         Command::TeamAdd => translate_team_add(node_view),
         Command::TeamJoin => translate_team_join(node_view),
@@ -316,14 +325,14 @@ fn choose_translate(node_view: &mut NodeView) -> Result<()> {
         _ => Err(Translation(
             "unknown command in choose_translate() (internal)".to_string(),
         )),
-    }
+    })
 }
 
 fn translate_advancement(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("advancement grant ");
 
-    let (args, _, selector) = node_view.as_selector()?;
-    let current_arg = translate_entity(node_view, args, selector, 0)? as usize;
+    let (args, selector) = node_view.as_selector()?;
+    let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     node_view.extend([" only ", node_view.extract(args[current_arg])]);
 
@@ -333,8 +342,8 @@ fn translate_advancement(node_view: &mut NodeView) -> Result<()> {
 fn translate_attribute(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("attribute ");
 
-    let (args, _, selector) = node_view.as_selector()?;
-    let current_arg = translate_entity(node_view, args, selector, 0)? as usize;
+    let (args, selector) = node_view.as_selector()?;
+    let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     node_view.extend([
         " ",
@@ -347,7 +356,7 @@ fn translate_attribute(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_bossbar_add(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, text) = node_view.as_text()?;
+    let (args, text) = node_view.as_text()?;
 
     node_view.extend([
         "bossbar add ",
@@ -361,7 +370,7 @@ fn translate_bossbar_add(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_bossbar_set(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     let submode = node_view.extract(args[1]);
 
     node_view.extend([
@@ -369,6 +378,7 @@ fn translate_bossbar_set(node_view: &mut NodeView) -> Result<()> {
         node_view.extract(args[0]), // bossbar name
         " ",
         submode,
+        " ",
     ]);
 
     if submode == "players" {
@@ -382,7 +392,7 @@ fn translate_bossbar_set(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_bossbar_remove(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend([
         "bossbar remove ",
@@ -395,8 +405,8 @@ fn translate_bossbar_remove(node_view: &mut NodeView) -> Result<()> {
 fn translate_clear(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("clear ");
 
-    let (args, _, selector, id_with_data) = node_view.as_selector_id_with_data()?;
-    let current_arg = translate_entity(node_view, args, selector, 0)? as usize;
+    let (args, selector, id_with_data) = node_view.as_selector_id_with_data()?;
+    let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     node_view.extend([" ", node_view.extract(id_with_data.id)]); // item
 
@@ -414,7 +424,7 @@ fn translate_clear(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_clone(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend([
         "clone ",
@@ -449,8 +459,8 @@ fn translate_clone(node_view: &mut NodeView) -> Result<()> {
 fn translate_damage(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("damage ");
 
-    let (args, _, selector) = node_view.as_selector()?;
-    let current_arg = translate_entity(node_view, args, selector, 0)? as usize;
+    let (args, selector) = node_view.as_selector()?;
+    let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     node_view.extend([
         " ",
@@ -461,29 +471,46 @@ fn translate_damage(node_view: &mut NodeView) -> Result<()> {
     Ok(())
 }
 
-fn translate_data(node_view: &mut NodeView) -> Result<()> {
-    let (args, command, selector, list) = node_view.as_selector_list()?;
-    let mode = if command == Command::DataGet {
-        "get"
-    } else {
-        "modify"
-    };
-
-    node_view.extend(["data ", mode, " entity "]);
-    let current_arg = translate_entity(node_view, args, selector, 0)? as usize;
+fn translate_data_shared<'a>(
+    node_view: &mut NodeView<'a>,
+    args: &[BaseToken],
+    selector: &Selector,
+) -> Result<(usize, &'a str)> {
+    let current_arg = translate_entity(node_view, args, selector, 0)?;
     let mut data_field = node_view.extract(args[current_arg]);
 
     if data_field == "loot_table" {
         data_field = "DeathLootTable";
     }
 
+    Ok((current_arg, data_field))
+}
+
+fn translate_data_get(node_view: &mut NodeView) -> Result<()> {
+    let (args, selector) = node_view.as_selector()?;
+
+    node_view.push_str("data get entity ");
+
+    let (_, data_field) = translate_data_shared(node_view, args, selector)?;
+
     node_view.extend([" ", data_field]);
+    Ok(())
+}
 
-    if command == Command::DataGet {
-        return Ok(());
-    }
+fn translate_data_modify(node_view: &mut NodeView) -> Result<()> {
+    let (args, selector, list) = node_view.as_selector_list()?;
 
-    node_view.extend([" ", node_view.extract(args[current_arg + 1]), " value "]); // modify mode
+    node_view.push_str("data modify entity ");
+
+    let (current_arg, data_field) = translate_data_shared(node_view, args, selector)?;
+
+    node_view.extend([
+        " ",
+        data_field,
+        " ",
+        node_view.extract(args[current_arg + 1]), // modify mode
+        " value ",
+    ]);
 
     if list.is_empty() {
         node_view.extend(["\"", node_view.extract(args[current_arg + 2]), "\""]);
@@ -495,12 +522,12 @@ fn translate_data(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_effect(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     let mode = node_view.extract(args[0]);
 
     node_view.extend(["effect ", mode, " "]);
 
-    let current_arg = translate_entity(node_view, args, selector, 1)? as usize;
+    let current_arg = translate_entity(node_view, args, selector, 1)?;
 
     node_view.extend([" ", node_view.extract(args[current_arg])]);
 
@@ -520,29 +547,29 @@ fn translate_effect(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_ex_align(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend(["align ", node_view.extract(args[0])]);
     Ok(())
 }
 
 fn translate_ex_anchored(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend(["anchored ", node_view.extract(args[0])]);
     Ok(())
 }
 
-fn translate_ex(node_view: &mut NodeView) -> Result<()> {
+fn translate_ex(node_view: &mut NodeView, path: &Path) -> Result<()> {
     node_view.push_str("execute");
-    let (args, _, subnodes, run_node) = node_view.as_ex()?;
+    let (subnodes, run_node) = node_view.as_ex()?;
 
     for subnode in subnodes {
         node_view.push(' ');
 
         let mut subnode_view = NodeView::new(node_view.result, subnode, node_view.source_code);
 
-        match subnode_view.command() {
+        sorted_match!(match subnode_view.command() {
             Command::ExAlign => translate_ex_align(&mut subnode_view)?,
             Command::ExAnchored => translate_ex_anchored(&mut subnode_view)?,
             Command::ExAs => translate_ex_as(&mut subnode_view)?,
@@ -552,12 +579,12 @@ fn translate_ex(node_view: &mut NodeView) -> Result<()> {
             Command::ExFacing => translate_ex_facing(&mut subnode_view)?,
             Command::ExItemsBlock => translate_ex_items_block(&mut subnode_view)?,
             Command::ExItemsEnt => translate_ex_items_ent(&mut subnode_view)?,
-            Command::ExScore => translate_ex_score(&mut subnode_view)?,
             Command::ExPos => translate_ex_pos(&mut subnode_view)?,
+            Command::ExScore => translate_ex_score(&mut subnode_view)?,
             Command::ExStoreBossbar => translate_ex_store_bossbar(&mut subnode_view)?,
             Command::ExStoreEnt => translate_ex_store_ent(&mut subnode_view)?,
-            Command::ExStoreStorage => translate_ex_store_storage(&mut subnode_view)?,
             Command::ExStoreScore => translate_ex_store_score(&mut subnode_view)?,
+            Command::ExStoreStorage => translate_ex_store_storage(&mut subnode_view)?,
             Command::ExUninited => translate_ex_uninited(&mut subnode_view)?,
 
             _ => {
@@ -565,18 +592,18 @@ fn translate_ex(node_view: &mut NodeView) -> Result<()> {
                     "unknown execute subcommand in translate_ex() (internal)".to_string(),
                 ));
             }
-        }
+        })
     }
 
     node_view.push_str(" run ");
 
     let mut run_view = NodeView::new(node_view.result, run_node, node_view.source_code);
 
-    choose_translate(&mut run_view)
+    choose_translate(&mut run_view, path)
 }
 
 fn translate_fill(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, id_with_data) = node_view.as_id_with_data()?;
+    let (args, id_with_data) = node_view.as_id_with_data()?;
 
     node_view.extend([
         "fill",
@@ -608,13 +635,52 @@ fn translate_fill(node_view: &mut NodeView) -> Result<()> {
     Ok(())
 }
 
-//fn translate_fn(node_view: &mut NodeView) -> Result<()> {
-//    node_view.push_str("function ");
+fn translate_fn(node_view: &mut NodeView, mut path: &Path) -> Result<()> {
+    node_view.push_str("function ");
 
-//}
+    while path.file_name().unwrap() != "function"
+        && let Some(parent) = path.parent()
+    {
+        path = parent;
+    }
+
+    if path.file_name().unwrap() != "function" {
+        return Err(Translation(
+            "parent directory \"function\" not found".to_string(),
+        ));
+    }
+
+    let args = node_view.as_base()?;
+    let fn_body = node_view.extract(args[0]);
+    let target_path = path.join(fn_body).with_extension("neniy");
+
+    if !target_path.is_file() {
+        return Err(Translation(["no such function: ", fn_body].concat()));
+    }
+
+    while let Some(parent) = path.parent()
+        && parent.file_name().unwrap() != "data"
+    {
+        path = parent;
+    }
+
+    if path.parent().is_none() {
+        return Err(Translation(
+            "parent directory \"data\" not found".to_string(),
+        ));
+    }
+
+    node_view.extend([path.file_name().unwrap().to_str().unwrap(), ":", fn_body]);
+
+    if args.len() == 2 {
+        node_view.extend([" with storage ", node_view.extract(args[1])]);
+    }
+
+    Ok(())
+}
 
 fn translate_gm(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
 
     node_view.extend([
         "gamemode",
@@ -628,8 +694,7 @@ fn translate_gm(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_gamerule(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
-
+    let args = node_view.as_base()?;
     let mut rule = node_view.extract(args[0]);
 
     if rule == "natural_regeneration" {
@@ -649,10 +714,10 @@ fn translate_gamerule(node_view: &mut NodeView) -> Result<()> {
 fn translate_give(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("give ");
 
-    let (args, _, selector, id_with_data) = node_view.as_selector_id_with_data()?;
-    let current_arg = translate_entity(node_view, args, selector, 0)? as usize;
+    let (args, selector, id_with_data) = node_view.as_selector_id_with_data()?;
+    let current_arg = translate_entity(node_view, args, selector, 0)?;
 
-    node_view.extend([" ", node_view.extract(id_with_data.id)]);
+    node_view.extend([" ", node_view.extract(id_with_data.id)]); // item
 
     if !id_with_data.data.is_empty() {
         node_view.push('[');
@@ -661,7 +726,7 @@ fn translate_give(node_view: &mut NodeView) -> Result<()> {
     }
 
     if args.len() == current_arg + 1 {
-        node_view.extend([" ", node_view.extract(args[current_arg])]);
+        node_view.extend([" ", node_view.extract(args[current_arg])]); // count
     }
 
     Ok(())
@@ -670,15 +735,14 @@ fn translate_give(node_view: &mut NodeView) -> Result<()> {
 fn translate_kill(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("kill ");
 
-    let (args, _, selector) = node_view.as_selector()?;
-
+    let (args, selector) = node_view.as_selector()?;
     translate_entity(node_view, args, selector, 0)?;
 
     Ok(())
 }
 
 fn translate_native(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
     let native_command = BaseToken {
         start: args[0].start + 1,
         end: args[0].end - 1,
@@ -690,7 +754,7 @@ fn translate_native(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_ptc(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, id_with_data) = node_view.as_id_with_data()?;
+    let (args, id_with_data) = node_view.as_id_with_data()?;
 
     node_view.extend(["particle ", node_view.extract(id_with_data.id)]);
 
@@ -725,7 +789,7 @@ fn translate_ptc(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_pls(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
 
     node_view.extend([
         "playsound ",
@@ -733,7 +797,7 @@ fn translate_pls(node_view: &mut NodeView) -> Result<()> {
         " neutral",
     ]);
 
-    let current_arg = translate_entity(node_view, args, selector, 1)? as usize;
+    let current_arg = translate_entity(node_view, args, selector, 1)?;
 
     node_view.extend([
         " ",
@@ -752,7 +816,7 @@ fn translate_pls(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_say(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend(["say ", node_view.extract(args[0])]);
 
@@ -760,7 +824,7 @@ fn translate_say(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_scb_obj_add(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, text) = node_view.as_text()?;
+    let (args, text) = node_view.as_text()?;
 
     node_view.extend([
         "scoreboard objectives add ",
@@ -780,7 +844,7 @@ fn translate_scb_obj_add(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_scb_obj_set(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend([
         "scoreboard objectives setdisplay ",
@@ -793,7 +857,7 @@ fn translate_scb_obj_set(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_scb_players(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     let mut mode = node_view.extract(args[0]);
 
     if mode == "opr" {
@@ -801,7 +865,6 @@ fn translate_scb_players(node_view: &mut NodeView) -> Result<()> {
     }
 
     node_view.extend(["scoreboard players ", mode, " "]);
-
     let current_arg = translate_entity(node_view, args, selector, 1)?;
 
     node_view.extend([
@@ -813,13 +876,14 @@ fn translate_scb_players(node_view: &mut NodeView) -> Result<()> {
         return Ok(());
     }
 
-    node_view.extend([" ", node_view.extract(args[current_arg + 1])]);
+    node_view.extend([" ", node_view.extract(args[current_arg + 1])]); // operator
 
     if mode == "operation" {
         node_view.extend([
             " ",
             node_view.extract(args[current_arg + 2]), // second entity
-            node_view.extract(args[current_arg]),     // same objective
+            " ",
+            node_view.extract(args[current_arg]), // same objective
         ]);
     }
 
@@ -827,7 +891,7 @@ fn translate_scb_players(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_setblock(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, id_with_data) = node_view.as_id_with_data()?;
+    let (args, id_with_data) = node_view.as_id_with_data()?;
 
     node_view.extend([
         "setblock ",
@@ -844,7 +908,7 @@ fn translate_setblock(node_view: &mut NodeView) -> Result<()> {
         translate_block_data(node_view, &id_with_data.data)?;
     }
 
-    node_view.extend([" ", node_view.extract(args[3])]);
+    node_view.extend([" ", node_view.extract(args[3])]); // mode
 
     Ok(())
 }
@@ -852,16 +916,16 @@ fn translate_setblock(node_view: &mut NodeView) -> Result<()> {
 fn translate_spawnpoint(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("spawnpoint ");
 
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     node_view.extend([
         " ",
-        node_view.extract(args[current_arg]),
+        node_view.extract(args[current_arg]), // x
         " ",
-        node_view.extract(args[current_arg + 1]),
+        node_view.extract(args[current_arg + 1]), // y
         " ",
-        node_view.extract(args[current_arg + 2]),
+        node_view.extract(args[current_arg + 2]), // z
     ]);
 
     Ok(())
@@ -870,8 +934,8 @@ fn translate_spawnpoint(node_view: &mut NodeView) -> Result<()> {
 fn translate_spectate(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("spectate ");
 
-    let (args, _, selector) = node_view.as_selector()?;
-    translate_entity(node_view, args, selector, 0);
+    let (args, selector) = node_view.as_selector()?;
+    translate_entity(node_view, args, selector, 0)?;
 
     Ok(())
 }
@@ -879,7 +943,7 @@ fn translate_spectate(node_view: &mut NodeView) -> Result<()> {
 fn translate_stopsound(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("stopsound ");
 
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     node_view.extend([" * ", node_view.extract(args[current_arg])]); // sound id
@@ -887,7 +951,7 @@ fn translate_stopsound(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_sm(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, id_with_data) = node_view.as_id_with_data()?;
+    let (args, id_with_data) = node_view.as_id_with_data()?;
 
     node_view.extend([
         "summon ",
@@ -912,37 +976,37 @@ fn translate_sm(node_view: &mut NodeView) -> Result<()> {
 fn translate_tag(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("tag ");
 
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
     let current_arg = translate_entity(node_view, args, selector, 0)?;
 
     node_view.extend([
         " ",
-        node_view.extract(args[current_arg]),
+        node_view.extract(args[current_arg]), // mode
         " ",
-        node_view.extract(args[current_arg + 1]),
+        node_view.extract(args[current_arg + 1]), // tag name
     ]);
 
     Ok(())
 }
 
 fn translate_team_add(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
-    node_view.extend(["team add ", node_view.extract(args[0])]);
+    let args = node_view.as_base()?;
+    node_view.extend(["team add ", node_view.extract(args[0])]); // team name
 
     Ok(())
 }
 
 fn translate_team_join(node_view: &mut NodeView) -> Result<()> {
-    let (args, _, selector) = node_view.as_selector()?;
+    let (args, selector) = node_view.as_selector()?;
 
-    node_view.extend(["team join ", node_view.extract(args[0]), " "]);
+    node_view.extend(["team join ", node_view.extract(args[0]), " "]); // team name
     translate_entity(node_view, args, selector, 1)?;
 
     Ok(())
 }
 
 fn translate_team_modify(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
     let mut rule = node_view.extract(args[1]);
 
     if rule == "friendly_fire" {
@@ -953,11 +1017,11 @@ fn translate_team_modify(node_view: &mut NodeView) -> Result<()> {
 
     node_view.extend([
         "team modify ",
-        node_view.extract(args[0]),
+        node_view.extract(args[0]), // team name
         " ",
         rule,
         " ",
-        node_view.extract(args[2]),
+        node_view.extract(args[2]), // value
     ]);
 
     Ok(())
@@ -966,7 +1030,7 @@ fn translate_team_modify(node_view: &mut NodeView) -> Result<()> {
 fn translate_tellraw(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("tellraw ");
 
-    let (args, _, selector, text) = node_view.as_selector_text()?;
+    let (args, selector, text) = node_view.as_selector_text()?;
 
     translate_entity(node_view, args, selector, 0)?;
 
@@ -978,7 +1042,7 @@ fn translate_tellraw(node_view: &mut NodeView) -> Result<()> {
 }
 
 fn translate_time(node_view: &mut NodeView) -> Result<()> {
-    let (args, _) = node_view.as_base()?;
+    let args = node_view.as_base()?;
 
     node_view.extend([
         "time ",
@@ -993,10 +1057,10 @@ fn translate_time(node_view: &mut NodeView) -> Result<()> {
 fn translate_title(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("title ");
 
-    let (args, _, selector, text) = node_view.as_selector_text()?;
+    let (args, selector, text) = node_view.as_selector_text()?;
     let current_arg = translate_entity(node_view, args, selector, 0)?;
 
-    node_view.extend([" ", node_view.extract(args[current_arg]), " "]);
+    node_view.extend([" ", node_view.extract(args[current_arg]), " "]); // mode
 
     text::translate_text(node_view, text);
 
@@ -1006,7 +1070,7 @@ fn translate_title(node_view: &mut NodeView) -> Result<()> {
 fn translate_tp(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("tp ");
 
-    let (args, _, selector1, selector2) = node_view.as_double_selector()?;
+    let (args, selector1, selector2) = node_view.as_double_selector()?;
 
     match args.len() {
         0 => {

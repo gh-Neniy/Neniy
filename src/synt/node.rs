@@ -75,11 +75,10 @@ pub enum Node {
     DoubleSelector(Box<DoubleSelectorNode>), // 8 bytes (instead of 89)
 
     Ex {
-        args: Vec<BaseToken>,
         command: Command,
         subnodes: Vec<Node>,
         run_node: Box<Node>,
-    }, // 57 bytes
+    }, // 33 bytes
 
     IdWithData {
         args: Vec<BaseToken>,
