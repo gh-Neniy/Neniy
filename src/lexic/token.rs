@@ -371,6 +371,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const TITLE: u64 = hash(b"title");
         const TO_COLOR: u64 = hash(b"to_color");
         const TP: u64 = hash(b"tp");
+        const TP_TIME: u64 = hash(b"tp_time");
         const TYPE: u64 = hash(b"type");
         const UNINITED: u64 = hash(b"uninited");
         const UNLESS: u64 = hash(b"unless");
@@ -519,6 +520,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         TITLE => TokenKind::Title,
         TO_COLOR => TokenKind::ToColor,
         TP => TokenKind::Tp,
+        TP_TIME => TokenKind::TpTime,
         TYPE => TokenKind::Type,
         UNINITED => TokenKind::Uninited,
         UNLESS => TokenKind::Unless,
@@ -582,7 +584,6 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"spectator" => TokenKind::Spectator,
         b"stability" => TokenKind::Stability,
         b"stopsound" => TokenKind::Stopsound,
-        b"teleport_duration" => TokenKind::TpTime,
         b"unbreakable" => TokenKind::Unbreakable,
         b"x_rotation" => TokenKind::XRotation,
         b"y_rotation" => TokenKind::YRotation,

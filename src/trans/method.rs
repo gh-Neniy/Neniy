@@ -959,10 +959,11 @@ fn translate_stopsound(node_view: &mut NodeView) -> Result<()> {
 
 fn translate_sm(node_view: &mut NodeView) -> Result<()> {
     let (args, id_with_data) = node_view.as_id_with_data()?;
+    let entity_name = node_view.extract(id_with_data.id);
 
     node_view.extend([
         "summon ",
-        node_view.extract(id_with_data.id), // entity name
+        entity_name,
         " ",
         node_view.extract(args[0]), // x
         " ",
@@ -973,7 +974,11 @@ fn translate_sm(node_view: &mut NodeView) -> Result<()> {
 
     if !id_with_data.data.is_empty() {
         node_view.push_str(" {");
-        data::translate_entity_data(node_view, &id_with_data.data)?;
+        data::translate_entity_data(
+            node_view,
+            &id_with_data.data,
+            entity_name == "falling_block",
+        )?;
         node_view.push('}');
     }
 

@@ -46,7 +46,7 @@ fn translate_selector_unit(node_view: &mut NodeView, unit: &SelectorUnit) -> Res
         }
         SelectorValue::Data(data) => {
             node_view.push_str("nbt={");
-            data::translate_entity_data(node_view, data)?;
+            data::translate_entity_data(node_view, data, false)?;
             node_view.push('}');
         }
         SelectorValue::List(list) => {

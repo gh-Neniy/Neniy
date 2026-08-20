@@ -175,11 +175,11 @@ fn translate_tags(node_view: &mut NodeView, tags: &[BaseToken]) {
     node_view.push_str("Tags:[");
 
     let mut iter = tags.iter();
-    node_view.push_str(node_view.extract(*iter.next().unwrap()));
+    node_view.extend(["\"", node_view.extract(*iter.next().unwrap()), "\""]);
 
     for tag in iter {
         node_view.push(',');
-        node_view.push_str(node_view.extract(*tag));
+        node_view.extend(["\"", node_view.extract(*tag), "\""]);
     }
 
     node_view.push(']');
@@ -343,6 +343,7 @@ fn entity_data_match<'a>(
     node_view: &mut NodeView,
     unit: &'a DataUnit,
     storage: &mut Storage<'a>,
+    is_falling_block: bool,
     with_comma: bool,
 ) -> Result<bool> {
     use TokenKind::*;
@@ -380,7 +381,7 @@ fn entity_data_match<'a>(
                     node_view.push_str("item:");
                     translate_item(node_view, unit.value.as_id_with_data()?)?;
                 }
-                Block => translate_block_state(node_view, unit, true)?,
+                Block => translate_block_state(node_view, unit, is_falling_block)?,
                 CanGrab => node_view.push_str("CanPickUpLoot:1b"),
                 Crit => node_view.push_str("crit:1b"),
                 Health => {
@@ -391,11 +392,10 @@ fn entity_data_match<'a>(
                         value,
                     });
                     node_view.extend(["Health:", node_view.extract(value)]);
-                },
+                }
                 Height => node_view.extend(["height:", node_view.extract(unit.value.as_id()?)]),
-                HurtTime => node_view.extend(["HurtTime:", node_view.extract(unit.value.as_id()?), "s"]),
-                Id /*id for block_display*/ =>
-                    translate_block_state(node_view, unit, false)?,
+                HurtTime =>
+                    node_view.extend(["HurtTime:", node_view.extract(unit.value.as_id()?), "s"]),
                 InGround => node_view.push_str("inGround:1b"),
                 Interaction => node_view.push_str("interaction:{}"),
                 Invisible => node_view.push_str("Invisible:1b"),
@@ -404,40 +404,54 @@ fn entity_data_match<'a>(
                     node_view.push_str("Item:");
                     translate_item(node_view, unit.value.as_id_with_data()?)?;
                 }
-                LootTable => node_view.extend(["DeathLootTable:\"", node_view.extract(unit.value.as_id()?), "\""]),
+                LootTable => node_view.extend([
+                    "DeathLootTable:\"",
+                    node_view.extract(unit.value.as_id()?),
+                    "\""
+                ]),
                 Name => {
                     node_view.push_str("CustomName:");
                     text::translate_text(node_view, unit.value.as_text()?);
-                },
+                }
                 NameVisible => node_view.push_str("CustomNameVisible:1b"),
                 NoAI => node_view.push_str("NoAI:1b"),
                 NoDespawn => node_view.push_str("PersistenceRequired:1b"),
                 NoGravity => node_view.push_str("NoGravity:1b"),
-                PickupDelay => node_view.extend(["PickupDelay:", node_view.extract(unit.value.as_id()?)]),
+                PickupDelay =>
+                    node_view.extend(["PickupDelay:", node_view.extract(unit.value.as_id()?)]),
                 Rotation => {
                     node_view.push_str("Rotation:");
                     aux::translate_numeric_list(node_view, unit.value.as_list()?, "f");
-                },
+                }
                 Scale => {
                     node_view.push_str("transformation:{scale:");
                     aux::translate_numeric_list(node_view, unit.value.as_list()?, "f");
                     node_view.push('}');
-                },
+                }
                 SelectedItem => {
                     node_view.push_str("SelectedItem:");
                     translate_item(node_view, unit.value.as_id_with_data()?)?
-                },
+                }
                 Shine => node_view.push_str("Glowing:1b"),
                 Silent => node_view.push_str("Silent:1b"),
                 Size => node_view.extend(["Size:", node_view.extract(unit.value.as_id()?)]),
                 Text => {
                     node_view.push_str("text:");
                     text::translate_text(node_view, unit.value.as_text()?);
-                },
-                TpTime => node_view.extend(["teleport_duration:", node_view.extract(unit.value.as_id()?)]),
+                }
+                TpTime =>
+                    node_view.extend(["teleport_duration:", node_view.extract(unit.value.as_id()?)]),
                 Width => node_view.extend(["width:", node_view.extract(unit.value.as_id()?)]),
 
-                _ => return Err(Translation(["unknown key ", node_view.extract(unit.key.base), " in entity data"].concat())),
+                _ =>
+                    return Err(Translation(
+                        [
+                            "unknown key ",
+                            node_view.extract(unit.key.base),
+                            " in entity data"
+                        ]
+                        .concat()
+                    )),
             })
         }
     });
@@ -636,7 +650,11 @@ pub fn translate_block_data<'a>(
     Ok(sign_msgs)
 }
 
-pub fn translate_entity_data(node_view: &mut NodeView, units: &[DataUnit]) -> Result<()> {
+pub fn translate_entity_data(
+    node_view: &mut NodeView,
+    units: &[DataUnit],
+    is_falling_block: bool,
+) -> Result<()> {
     let mut storage = Storage {
         attributes: Vec::new(),
         equipment: Vec::new(),
@@ -646,7 +664,8 @@ pub fn translate_entity_data(node_view: &mut NodeView, units: &[DataUnit]) -> Re
     let mut with_comma = false;
 
     for unit in units.iter() {
-        with_comma |= entity_data_match(node_view, unit, &mut storage, with_comma)?;
+        with_comma |=
+            entity_data_match(node_view, unit, &mut storage, is_falling_block, with_comma)?;
     }
 
     if !storage.attributes.is_empty() {

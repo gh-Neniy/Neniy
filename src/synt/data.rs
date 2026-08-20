@@ -257,8 +257,8 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
     use TokenKind::*;
 
     sorted_match!(match state[0].kind {
-        About | Block | Chest | Feet | Head | Id | Item | LeftHand | Legs | RightHand
-        | SelectedItem => capture_id_with_data_item(state),
+        About | Block | Chest | Feet | Head | Item | LeftHand | Legs | RightHand | SelectedItem =>
+            capture_id_with_data_item(state),
         AttackDamage | AttackSpeed | ChestChance | FeetChance | HeadChance | Health | Height
         | HurtTime | LeftHandChance | LegsChance | Level | PickupDelay | PotionColor
         | RightHandChance | Size | Stability | Stack | TpTime | Width => {
