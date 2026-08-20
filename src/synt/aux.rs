@@ -118,7 +118,7 @@ pub fn check_token(
     if !valid_token(state[0]) {
         return Err(Syntax(
             [
-                "invalid",
+                "invalid ",
                 token_name,
                 " ",
                 state.extract(0),

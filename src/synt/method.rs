@@ -245,7 +245,7 @@ sorted_fns!(
 
                 _ => {
                     return Err(Syntax(
-                        ["invalid ", NAME, " mode", state.extract(0)].concat(),
+                        ["invalid ", NAME, " mode ", state.extract(0)].concat(),
                     ));
                 }
             })

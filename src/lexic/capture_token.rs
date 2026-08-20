@@ -100,32 +100,6 @@ fn valid_id_char(c: u8) -> bool {
     valid_keyword_char(c) || matches!(c, b'.' | b':' | b'/' | b'!' | b'#')
 }
 
-fn valid_numeric_char(c: u8, was_dot: &mut bool) -> bool {
-    if c == b'.' {
-        if *was_dot {
-            return false;
-        }
-
-        *was_dot = true;
-
-        return true;
-    }
-
-    c.is_ascii_digit()
-}
-
-fn valid_string_char(c: u8, finished: &mut bool) -> bool {
-    if *finished {
-        return false;
-    }
-
-    if c == b'\'' {
-        *finished = true;
-    }
-
-    true
-}
-
 fn token_kind(token_body: &[u8]) -> TokenKind {
     if token_body.len() <= 8 {
         return token::short_token_kind(token_body);
@@ -134,82 +108,152 @@ fn token_kind(token_body: &[u8]) -> TokenKind {
     token::long_token_kind(token_body)
 }
 
-fn capture_long_token(
-    source_code: &[u8],
-    mut category: TokenCategory,
-    start_pos: usize,
-) -> Result<Token> {
-    let start = start_pos as Index;
-
-    if source_code[start_pos] == b'-'
-        && start_pos + 1 != source_code.len()
-        && source_code[start_pos + 1] == b'='
-    {
-        return Ok(Token::new(
-            start,
-            start + 1,
-            TokenKind::MinusEqualOperator,
-            TokenCategory::Operator,
-        ));
-    }
-
-    let mut state = false;
-    let mut end_pos = start_pos + 1; // current checking position
-
+fn capture_id(source_code: &[u8], mut end_pos: usize) -> usize {
     while end_pos < source_code.len() {
-        if category == TokenCategory::Numeric
-            && source_code[end_pos] == b'.'
-            && (end_pos + 1 == source_code.len() || !source_code[end_pos + 1].is_ascii_digit())
-        {
-            break;
-        }
-
-        let is_valid_char = sorted_match!(match category {
-            TokenCategory::Id => valid_id_char(source_code[end_pos]),
-            TokenCategory::Invalid => !source_code[end_pos].is_ascii_whitespace(),
-            TokenCategory::Keyword => valid_keyword_char(source_code[end_pos]),
-            TokenCategory::Numeric => valid_numeric_char(source_code[end_pos], &mut state),
-            TokenCategory::String => valid_string_char(source_code[end_pos], &mut state),
-
-            _ => {
-                return Err(Lexic(
-                    "invalid token category in capture_long_token() (internal)".to_string(),
-                ));
-            }
-        });
-
-        if !is_valid_char {
-            if matches!(category, TokenCategory::Keyword | TokenCategory::Numeric)
-                && valid_id_char(source_code[end_pos])
-                && source_code[start_pos] != b'-'
-            {
-                category = TokenCategory::Id;
-            } else {
-                break;
-            }
+        if !valid_id_char(source_code[end_pos]) {
+            return end_pos - 1;
         }
 
         end_pos += 1;
     }
 
-    if category == TokenCategory::String
-        && end_pos == source_code.len()
-        && *source_code.last().unwrap() != b'\''
-    {
-        return Err(Lexic("string literal quotation is not closed".to_string()));
+    end_pos - 1
+}
+
+fn capture_invalid(source_code: &[u8], mut end_pos: usize) -> usize {
+    while end_pos < source_code.len() {
+        if source_code[end_pos].is_ascii_whitespace() {
+            return end_pos - 1;
+        }
+
+        end_pos += 1;
     }
 
-    let token_body = &source_code[start_pos..end_pos];
-    let end = end_pos as Index - 1;
+    end_pos - 1
+}
 
-    sorted_match!(match category {
-        TokenCategory::Id => Ok(Token::new(start, end, TokenKind::Id, category)),
-        TokenCategory::Keyword => Ok(Token::new(start, end, token_kind(token_body), category)),
-        TokenCategory::Numeric => Ok(Token::new(start, end, TokenKind::Numeric, category)),
-        TokenCategory::String => Ok(Token::new(start, end, TokenKind::String, category)),
+fn capture_keyword(source_code: &[u8], mut end_pos: usize) -> usize {
+    while end_pos < source_code.len() {
+        if !valid_keyword_char(source_code[end_pos]) {
+            if valid_id_char(source_code[end_pos]) {
+                return capture_id(source_code, end_pos + 1);
+            }
 
-        _ => Err(Lexic(
-            ["invalid token ", std::str::from_utf8(token_body).unwrap()].concat(),
-        )),
-    })
+            return end_pos - 1;
+        }
+
+        end_pos += 1;
+    }
+
+    end_pos - 1
+}
+
+fn capture_numeric(source_code: &[u8], mut end_pos: usize, with_minus: bool) -> usize {
+    let mut was_dot = false;
+
+    while end_pos < source_code.len() {
+        if source_code[end_pos] == b'.' {
+            if (end_pos + 1 != source_code.len() && source_code[end_pos + 1] == b'.') /*separating from ranges*/ || was_dot
+            {
+                return end_pos - 1;
+            }
+
+            was_dot = true;
+        } else if !source_code[end_pos].is_ascii_digit() {
+            if valid_id_char(source_code[end_pos]) && !with_minus {
+                return capture_id(source_code, end_pos + 1);
+            }
+
+            return end_pos - 1;
+        }
+
+        end_pos += 1;
+    }
+
+    end_pos - 1
+}
+
+fn capture_string(source_code: &[u8], mut end_pos: usize) -> Result<usize> {
+    while end_pos < source_code.len() {
+        if source_code[end_pos] == b'\\' {
+            end_pos += 2;
+            continue;
+        }
+
+        if source_code[end_pos] == b'\'' {
+            return Ok(end_pos);
+        }
+
+        end_pos += 1;
+    }
+
+    Err(Lexic("string literal quotation is not closed".to_string()))
+}
+
+fn capture_long_token(
+    source_code: &[u8],
+    category: TokenCategory,
+    start_pos: usize,
+) -> Result<Token> {
+    let start = start_pos as Index;
+
+    let end_pos = match category {
+        TokenCategory::Id => capture_id(source_code, start_pos + 1),
+        TokenCategory::Invalid => capture_invalid(source_code, start_pos + 1),
+        TokenCategory::Keyword => capture_keyword(source_code, start_pos + 1),
+        TokenCategory::Numeric => {
+            if source_code[start_pos] == b'-' && start_pos + 1 != source_code.len() {
+                let second_sym = source_code[start_pos + 1];
+
+                match second_sym {
+                    b'=' => {
+                        return Ok(Token::new(
+                            start,
+                            start + 1,
+                            TokenKind::MinusEqualOperator,
+                            TokenCategory::Operator,
+                        ));
+                    }
+                    b'.' => {
+                        return Err(Lexic(
+                            "found \"-.\" instead of valid numeric token".to_string(),
+                        ));
+                    }
+                    _ if !second_sym.is_ascii_digit() => {
+                        return Err(Lexic("numeric consists of minus only".to_string()));
+                    }
+                    _ => capture_numeric(source_code, start_pos + 2, true),
+                }
+            } else {
+                capture_numeric(source_code, start_pos + 1, false)
+            }
+        }
+        TokenCategory::String => capture_string(source_code, start_pos + 1)?,
+
+        _ => {
+            return Err(Lexic(
+                "invalid token category in capture_long_token() (internal)".to_string(),
+            ));
+        }
+    };
+
+    let token_body = &source_code[start_pos..=end_pos];
+
+    Ok(Token::new(
+        start,
+        end_pos as Index,
+        sorted_match!(match category {
+            TokenCategory::Id => TokenKind::Id,
+            TokenCategory::Keyword => token_kind(token_body),
+            TokenCategory::Numeric => TokenKind::Numeric,
+            TokenCategory::String => TokenKind::String,
+
+            _ => {
+                return Err(Lexic(
+                    ["invalid token ", std::str::from_utf8(token_body).unwrap()].concat(),
+                ));
+            }
+        }),
+        category,
+    ))
 }

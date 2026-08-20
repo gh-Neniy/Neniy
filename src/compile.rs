@@ -10,7 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-fn compile(source_code: &[u8], path: &Path) -> Result<String> {
+pub fn compile(source_code: &[u8], path: &Path) -> Result<String> {
     let tokens = lexic::parse(source_code)?;
     let nodes = synt::parse(&tokens, source_code)?;
 
