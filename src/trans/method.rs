@@ -487,6 +487,8 @@ fn translate_data_shared<'a>(
 
     if data_field == "loot_table" {
         data_field = "DeathLootTable";
+    } else if data_field == "tp_time" {
+        data_field = "teleport_duration";
     }
 
     Ok((current_arg, data_field))
