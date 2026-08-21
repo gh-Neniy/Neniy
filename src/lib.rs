@@ -113,8 +113,8 @@ impl NeniyError {
                 .collect::<PathBuf>()
                 .to_str()
                 .unwrap(),
-            self.start_col,
-            self.start_row,
+            self.start_row + 1,
+            self.start_col + 1,
         )
     }
 
@@ -143,9 +143,13 @@ impl NeniyError {
         let mut pos = 0;
 
         while pos < start_pos {
-            if source_code[pos as usize] == b'\n' {
+            let byte = source_code[pos as usize];
+
+            if byte == b'\n' {
                 start_row += 1;
                 start_col = 0;
+            } else if (byte & 0b1100_0000) != 0b1000_0000 {
+                start_col += 1;
             }
 
             pos += 1;
@@ -155,9 +159,13 @@ impl NeniyError {
         let mut end_col = start_col;
 
         while pos < end_pos {
-            if source_code[pos as usize] == b'\n' {
+            let byte = source_code[pos as usize];
+
+            if byte == b'\n' {
                 end_row += 1;
                 end_col = 0;
+            } else if (byte & 0b1100_0000) != 0b1000_0000 {
+                end_col += 1;
             }
 
             pos += 1;
