@@ -4,15 +4,15 @@ use std::{
 };
 
 use crate::{
-    NeniyError::Syntax,
-    Result,
+    ErrorKind::Syntax,
+    NeniyError, Result,
     lexic::token::{BaseToken, Index, Token, TokenCategory, TokenKind},
 };
 
 #[derive(Debug)]
 pub struct State<'a> {
     tokens: &'a [Token],
-    source_code: &'a [u8],
+    pub source_code: &'a [u8],
     pos: Index,
 }
 
@@ -78,8 +78,17 @@ pub fn capture_range(state: &mut State) -> Result<BaseToken> {
         }
 
         if !consecutive(state[0], state[1]) {
-            return Err(Syntax(
-                ["range is not consecutive", state.extract_segment(0, 1)].concat(),
+            return Err(NeniyError::new(
+                [
+                    "range is not consecutive \"",
+                    state.extract_segment(0, 1),
+                    "\"",
+                ]
+                .concat(),
+                Syntax,
+                state.source_code,
+                state[0].base.start,
+                state[1].base.end,
             ));
         }
 
@@ -97,8 +106,14 @@ pub fn check_presence(
     command_name: &str,
 ) -> Result<()> {
     if state.exceed(offset) {
-        return Err(Syntax(
+        let last_pos = (state.source_code.len() as Index).saturating_sub(1);
+
+        return Err(NeniyError::new(
             [token_name, " not found for ", command_name].concat(),
+            Syntax,
+            state.source_code,
+            last_pos,
+            last_pos,
         ));
     }
 
@@ -116,16 +131,20 @@ pub fn check_token(
     check_presence(state, offset, token_name, command_name)?;
 
     if !valid_token(state[0]) {
-        return Err(Syntax(
+        return Err(NeniyError::new(
             [
                 "invalid ",
                 token_name,
-                " ",
+                " \"",
                 state.extract(0),
-                " in ",
+                "\" in ",
                 command_name,
             ]
             .concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[0].base.end,
         ));
     }
 
@@ -138,14 +157,30 @@ pub fn unit_check(
     valid_value: fn(Token) -> bool,
 ) -> Result<()> {
     if state.exceed(2) {
-        return Err(Syntax(["not enough tokens for ", unit_name].concat()));
+        return Err(NeniyError::new(
+            ["not enough tokens for ", unit_name].concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[0].base.end,
+        ));
     }
     if state[1].kind != TokenKind::EqualOperator {
-        return Err(Syntax(["'=' not found for ", unit_name].concat()));
+        return Err(NeniyError::new(
+            ["'=' not found for ", unit_name].concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[2].base.end,
+        ));
     }
     if !valid_value(state[2]) {
-        return Err(Syntax(
-            ["invalid value ", state.extract(2), " for ", unit_name].concat(),
+        return Err(NeniyError::new(
+            ["invalid value \"", state.extract(2), "\" for ", unit_name].concat(),
+            Syntax,
+            state.source_code,
+            state[2].base.start,
+            state[2].base.end,
         ));
     }
 
@@ -230,8 +265,12 @@ pub fn capture_list(state: &mut State) -> Result<List> {
         }
 
         if !valid_id(state[0]) {
-            return Err(Syntax(
-                ["invalid key ", state.extract(0), " in list"].concat(),
+            return Err(NeniyError::new(
+                ["invalid key \"", state.extract(0), "\" in list"].concat(),
+                Syntax,
+                state.source_code,
+                state[0].base.start,
+                state[0].base.end,
             ));
         }
 
@@ -241,7 +280,13 @@ pub fn capture_list(state: &mut State) -> Result<List> {
     }
 
     if state.is_empty() {
-        return Err(Syntax("']' not found for list in selector".to_string()));
+        return Err(NeniyError::new(
+            "']' not found for list in selector".to_string(),
+            Syntax,
+            state.source_code,
+            state[-1].base.end,
+            state[-1].base.end,
+        ));
     }
 
     Ok(list)
@@ -253,8 +298,17 @@ fn capture_range_impl(state: &mut State) -> Result<Index> {
     }
 
     if !consecutive(state[0], state[1]) {
-        return Err(Syntax(
-            ["range is not consecutive", state.extract_segment(0, 1)].concat(),
+        return Err(NeniyError::new(
+            [
+                "range is not consecutive \"",
+                state.extract_segment(0, 1),
+                "\"",
+            ]
+            .concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[1].base.end,
         ));
     }
 

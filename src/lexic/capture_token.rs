@@ -1,7 +1,7 @@
 use sorted_code::sorted_match;
 
 use super::token::{self, Index, Token, TokenCategory, TokenKind};
-use crate::{NeniyError::Lexic, Result};
+use crate::{ErrorKind::Lexic, NeniyError, Result};
 
 pub fn capture_token(
     source_code: &[u8],
@@ -39,8 +39,12 @@ fn capture_short_token(
         TokenCategory::Selector => capture_selector(source_code, start_pos),
         TokenCategory::Special => capture_special(source_code, start_pos),
 
-        _ => Err(Lexic(
+        _ => Err(NeniyError::new(
             "invalid token category in capture_short_token() (internal)".to_string(),
+            Lexic,
+            source_code,
+            start,
+            start,
         )),
     })
 }
@@ -61,32 +65,47 @@ fn capture_operator(source_code: &[u8], start_pos: usize) -> Token {
 }
 
 fn capture_selector(source_code: &[u8], start_pos: usize) -> Result<Token> {
+    let start = start_pos as Index;
+
     if start_pos + 1 == source_code.len() {
-        return Err(Lexic("@ instead of selector".to_string()));
+        return Err(NeniyError::new(
+            "@ instead of selector".to_string(),
+            Lexic,
+            source_code,
+            start,
+            start,
+        ));
     }
 
     Ok(Token::new(
-        start_pos as Index,
-        start_pos as Index + 1,
+        start,
+        start + 1,
         token::short_token_kind(&source_code[start_pos..start_pos + 2]),
         TokenCategory::Selector,
     ))
 }
 
 fn capture_special(source_code: &[u8], start_pos: usize) -> Result<Token> {
+    let start = start_pos as Index;
     let mut offset = 0;
 
     if source_code[start_pos] == b'.' {
         if start_pos + 1 == source_code.len() || source_code[start_pos + 1] != b'.' {
-            return Err(Lexic("invalid range token".to_string()));
+            return Err(NeniyError::new(
+                "@ instead of selector".to_string(),
+                Lexic,
+                source_code,
+                start,
+                start,
+            ));
         }
 
         offset += 1;
     }
 
     Ok(Token::new(
-        start_pos as Index,
-        start_pos as Index + offset,
+        start,
+        start + offset,
         token::short_token_kind(&source_code[start_pos..start_pos + 1 + offset as usize]),
         TokenCategory::Special,
     ))
@@ -187,7 +206,13 @@ fn capture_string(source_code: &[u8], mut end_pos: usize) -> Result<usize> {
         end_pos += 1;
     }
 
-    Err(Lexic("string literal quotation is not closed".to_string()))
+    Err(NeniyError::new(
+        "string literal quotation is not closed".to_string(),
+        Lexic,
+        source_code,
+        end_pos as Index - 1,
+        end_pos as Index - 1,
+    ))
 }
 
 fn capture_long_token(
@@ -215,12 +240,22 @@ fn capture_long_token(
                         ));
                     }
                     b'.' => {
-                        return Err(Lexic(
+                        return Err(NeniyError::new(
                             "found \"-.\" instead of valid numeric token".to_string(),
+                            Lexic,
+                            source_code,
+                            start,
+                            start + 1,
                         ));
                     }
                     _ if !second_sym.is_ascii_digit() => {
-                        return Err(Lexic("numeric consists of minus only".to_string()));
+                        return Err(NeniyError::new(
+                            "numeric consists of minus only".to_string(),
+                            Lexic,
+                            source_code,
+                            start,
+                            start,
+                        ));
                     }
                     _ => capture_numeric(source_code, start_pos + 2, true),
                 }
@@ -231,17 +266,22 @@ fn capture_long_token(
         TokenCategory::String => capture_string(source_code, start_pos + 1)?,
 
         _ => {
-            return Err(Lexic(
+            return Err(NeniyError::new(
                 "invalid token category in capture_long_token() (internal)".to_string(),
+                Lexic,
+                source_code,
+                start,
+                start,
             ));
         }
     };
 
     let token_body = &source_code[start_pos..=end_pos];
+    let end = end_pos as Index;
 
     Ok(Token::new(
         start,
-        end_pos as Index,
+        end,
         sorted_match!(match category {
             TokenCategory::Id => TokenKind::Id,
             TokenCategory::Keyword => token_kind(token_body),
@@ -249,8 +289,17 @@ fn capture_long_token(
             TokenCategory::String => TokenKind::String,
 
             _ => {
-                return Err(Lexic(
-                    ["invalid token ", std::str::from_utf8(token_body).unwrap()].concat(),
+                return Err(NeniyError::new(
+                    [
+                        "invalid token \"",
+                        std::str::from_utf8(token_body).unwrap(),
+                        "\"",
+                    ]
+                    .concat(),
+                    Lexic,
+                    source_code,
+                    start,
+                    end,
                 ));
             }
         }),

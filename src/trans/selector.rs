@@ -1,7 +1,7 @@
 use super::{aux::NodeView, data};
 use crate::{
-    NeniyError::Translation,
-    Result,
+    ErrorKind::Translation,
+    NeniyError, Result,
     lexic::token::TokenKind,
     synt::{
         aux::ListUnit,
@@ -68,9 +68,14 @@ pub fn translate_selector(node_view: &mut NodeView, selector: &Selector) -> Resu
         TokenKind::RandomPlayerSelector => "@r",
 
         _ => {
-            return Err(Translation(
-                "empty selector in translate_selector() (internal)".to_string(),
-            ));
+            return Err(NeniyError {
+                msg: "empty selector in translate_selector() (internal)".to_string(),
+                kind: Translation,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            });
         }
     });
 

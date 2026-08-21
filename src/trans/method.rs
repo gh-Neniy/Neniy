@@ -6,8 +6,8 @@ use super::{
     data, selector, text,
 };
 use crate::{
-    NeniyError::Translation,
-    Result,
+    ErrorKind::Translation,
+    NeniyError, Result,
     lexic::token::{BaseToken, Index, TokenKind},
     synt::{data::DataUnit, node::Command, selector::Selector},
 };
@@ -17,9 +17,15 @@ fn translate_block_data(node_view: &mut NodeView, units: &[DataUnit]) -> Result<
     let sign_msgs = data::translate_block_data(node_view, units, "=")?;
     node_view.push(']');
 
-    if let Some(sign_msgs) = sign_msgs {
+    if let Some((sign_msgs, key_start, key_end)) = sign_msgs {
         if sign_msgs.len() != 4 {
-            return Err(Translation("sign messages length is not 4".to_string()));
+            return Err(NeniyError::new(
+                "sign messages length is not 4".to_string(),
+                Translation,
+                node_view.source_code,
+                key_start,
+                key_end,
+            ));
         }
 
         node_view.push_str("{front_text:{messages:");
@@ -322,9 +328,14 @@ pub fn choose_translate(node_view: &mut NodeView, path: &Path) -> Result<()> {
         Command::Title => translate_title(node_view),
         Command::Tp => translate_tp(node_view),
 
-        _ => Err(Translation(
-            "unknown command in choose_translate() (internal)".to_string(),
-        )),
+        _ => Err(NeniyError {
+            msg: "unknown command in choose_translate() (internal)".to_string(),
+            kind: Translation,
+            start_row: 0,
+            start_col: 0,
+            end_row: 0,
+            end_col: 0,
+        }),
     })
 }
 
@@ -596,9 +607,14 @@ fn translate_ex(node_view: &mut NodeView, path: &Path) -> Result<()> {
             Command::ExUninited => translate_ex_uninited(&mut subnode_view)?,
 
             _ => {
-                return Err(Translation(
-                    "unknown execute subcommand in translate_ex() (internal)".to_string(),
-                ));
+                return Err(NeniyError {
+                    msg: "unknown execute subcommand in translate_ex() (internal)".to_string(),
+                    kind: Translation,
+                    start_row: 0,
+                    start_col: 0,
+                    end_row: 0,
+                    end_col: 0,
+                });
             }
         })
     }
@@ -653,9 +669,14 @@ fn translate_fn(node_view: &mut NodeView, mut path: &Path) -> Result<()> {
     }
 
     if path.file_name().unwrap() != "function" {
-        return Err(Translation(
-            "parent directory \"function\" not found".to_string(),
-        ));
+        return Err(NeniyError {
+            msg: "parent directory \"function\" not found".to_string(),
+            kind: Translation,
+            start_row: 0,
+            start_col: 0,
+            end_row: 0,
+            end_col: 0,
+        });
     }
 
     let args = node_view.as_base()?;
@@ -664,7 +685,13 @@ fn translate_fn(node_view: &mut NodeView, mut path: &Path) -> Result<()> {
     target_path.set_extension("neniy");
 
     if !target_path.is_file() {
-        return Err(Translation(["no such function: ", fn_body].concat()));
+        return Err(NeniyError::new(
+            ["no such function: ", fn_body].concat(),
+            Translation,
+            node_view.source_code,
+            args[0].start,
+            args[0].end,
+        ));
     }
 
     while let Some(parent) = path.parent()
@@ -674,9 +701,14 @@ fn translate_fn(node_view: &mut NodeView, mut path: &Path) -> Result<()> {
     }
 
     if path.parent().is_none() {
-        return Err(Translation(
-            "parent directory \"data\" not found".to_string(),
-        ));
+        return Err(NeniyError {
+            msg: "parent directory \"data\" not found".to_string(),
+            kind: Translation,
+            start_row: 0,
+            start_col: 0,
+            end_row: 0,
+            end_col: 0,
+        });
     }
 
     node_view.extend([path.file_name().unwrap().to_str().unwrap(), ":", fn_body]);
@@ -1178,9 +1210,14 @@ fn translate_tp(node_view: &mut NodeView) -> Result<()> {
         }
 
         _ => {
-            return Err(Translation(
-                "impossible case reached in translate_tp() (internal)".to_string(),
-            ));
+            return Err(NeniyError {
+                msg: "unknown execute subcommand in translate_ex() (internal)".to_string(),
+                kind: Translation,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            });
         }
     }
 

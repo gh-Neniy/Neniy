@@ -5,8 +5,8 @@ use super::{
     data::{self, DataPtr},
 };
 use crate::{
-    NeniyError::Syntax,
-    Result,
+    ErrorKind::Syntax,
+    NeniyError, Result,
     lexic::token::{BaseToken, Token, TokenKind},
 };
 
@@ -77,7 +77,13 @@ pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
     }
 
     if state.is_empty() {
-        return Err(Syntax("']' not found in selector parse".to_string()));
+        return Err(NeniyError::new(
+            "']' not found in selector parse".to_string(),
+            Syntax,
+            state.source_code,
+            state[-1].base.end,
+            state[-1].base.end,
+        ));
     }
 
     Ok(Selector { kind, units })
@@ -148,8 +154,12 @@ fn capture_item(state: &mut State) -> Result<SelectorUnit> {
         Score => capture_list_item(state),
         Tag => capture_value_item(state),
 
-        _ => Err(Syntax(
-            ["unknown key ", state.extract(0), " in selector unit"].concat(),
+        _ => Err(NeniyError::new(
+            ["unknown key \"", state.extract(0), "\" in selector unit"].concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[0].base.end,
         )),
     })
 }
@@ -174,12 +184,17 @@ fn have_next_text_block(state: &mut State) -> Result<bool> {
     }
 
     if state.exceed(offset) && balance > 0 {
-        return Err(Syntax(
+        return Err(NeniyError::new(
             [
-                "invalid square brace sequence: ",
+                "invalid square brace sequence: \"",
                 state.extract_segment(0, offset - 1),
+                "\"",
             ]
             .concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[offset as i16 - 1].base.end,
         ));
     }
 

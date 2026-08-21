@@ -11,8 +11,8 @@ use super::{
 };
 
 use crate::{
-    NeniyError::Syntax,
-    Result,
+    ErrorKind::Syntax,
+    NeniyError, Result,
     lexic::token::{BaseToken, Index, Token, TokenCategory, TokenKind},
 };
 
@@ -56,7 +56,13 @@ pub fn choose_parse(state: &mut State) -> Result<Node> {
         TokenKind::Title => title_parse(state),
         TokenKind::Tp => tp_parse(state),
 
-        _ => Err(Syntax(["unknown command ", state.extract(0)].concat())),
+        _ => Err(NeniyError::new(
+            ["unknown command \"", state.extract(0), "\""].concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[0].base.end,
+        )),
     })
 }
 
@@ -108,9 +114,7 @@ sorted_fns!(
             TokenKind::Remove => bossbar_remove_parse(state),
             TokenKind::Set => bossbar_set_parse(state),
 
-            _ => Err(Syntax(
-                ["invalid mode ", state.extract(0), " for bossbar"].concat(),
-            )),
+            _ => Err(invalid_mode(state, NAME)),
         })
     }
 
@@ -195,9 +199,7 @@ sorted_fns!(
             TokenKind::Get => data_get_parse(state),
             TokenKind::Modify => data_modify_parse(state),
 
-            _ => Err(Syntax(
-                ["invalid mode ", state.extract(0), " for ", NAME].concat(),
-            )),
+            _ => Err(invalid_mode(state, NAME)),
         })
     }
 
@@ -210,9 +212,7 @@ sorted_fns!(
             TokenKind::Clear => effect_clear_parse(state),
             TokenKind::Give => effect_give_parse(state),
 
-            _ => Err(Syntax(
-                ["invalid mode ", state.extract(0), " for ", NAME].concat(),
-            )),
+            _ => Err(invalid_mode(state, NAME)),
         })
     }
 
@@ -244,14 +244,18 @@ sorted_fns!(
                 TokenKind::Unless => subnodes.push(ex_condition_parse(state)?),
 
                 _ => {
-                    return Err(Syntax(
-                        ["invalid ", NAME, " mode ", state.extract(0)].concat(),
-                    ));
+                    return Err(invalid_mode(state, NAME));
                 }
             })
         }
 
-        Err(Syntax(["run command not found for ", NAME].concat()))
+        Err(NeniyError::new(
+            ["run command not found for ", NAME].concat(),
+            Syntax,
+            state.source_code,
+            state[-1].base.end,
+            state[-1].base.end,
+        ))
     }
 
     pub fn fill_parse(state: &mut State) -> Result<Node> {
@@ -453,9 +457,7 @@ sorted_fns!(
             TokenKind::Obj => scb_obj_parse(state),
             TokenKind::Players => scb_players_parse(state),
 
-            _ => Err(Syntax(
-                ["invalid mode ", state.extract(0), " for ", NAME].concat()
-            )),
+            _ => Err(invalid_mode(state, NAME)),
         })
     }
 
@@ -592,9 +594,7 @@ sorted_fns!(
             TokenKind::Join => team_join_parse(state),
             TokenKind::Modify => team_modify_parse(state),
 
-            _ => Err(Syntax(
-                ["invalid mode ", state.extract(0), " for ", NAME].concat(),
-            )),
+            _ => Err(invalid_mode(state, NAME)),
         })
     }
 
@@ -705,7 +705,13 @@ sorted_fns!(
             });
         }
 
-        Err(Syntax(["invalid coordinate ", state.extract(0)].concat()))
+        Err(NeniyError::new(
+            ["invalid coordinate \"", state.extract(0), "\""].concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[0].base.end,
+        ))
     }
 
     // state[0] on first coordinate
@@ -729,18 +735,31 @@ sorted_fns!(
         let mut data_field = state[0].base;
 
         while !state.exceed(1) && state[1].kind == TokenKind::OpeningSquareBrace {
-            if state.exceed(3)
-                || !aux::valid_numeric(state[2])
+            if state.exceed(3) {
+                return Err(NeniyError::new(
+                    "indexing not found for data-field".to_string(),
+                    Syntax,
+                    state.source_code,
+                    state[1].base.start,
+                    state[1].base.end,
+                ));
+            }
+
+            if !aux::valid_numeric(state[2])
                 || state[3].kind != TokenKind::ClosingSquareBrace
                 || !aux::consecutive3(state[1], state[2], state[3])
             {
-                return Err(Syntax(
+                return Err(NeniyError::new(
                     [
-                        "invalid indexing ",
+                        "invalid indexing \"",
                         state.extract_segment(1, 3),
-                        " in data-field",
+                        "\" in data-field",
                     ]
                     .concat(),
+                    Syntax,
+                    state.source_code,
+                    state[1].base.start,
+                    state[3].base.end,
                 ));
             }
 
@@ -764,8 +783,12 @@ sorted_fns!(
         } else if state[0].category == TokenCategory::Selector {
             selector::parse_selector(state, look_ahead)
         } else {
-            Err(Syntax(
-                ["invalid entity ", state.extract(0), " for ", name].concat(),
+            Err(NeniyError::new(
+                ["invalid entity \"", state.extract(0), "\" for ", name].concat(),
+                Syntax,
+                state.source_code,
+                state[0].base.start,
+                state[0].base.end,
             ))
         }
     }
@@ -787,10 +810,30 @@ sorted_fns!(
         } else if aux::valid_entity(state[0]) {
             capture_entity(state, args, name, false)
         } else {
-            Err(Syntax(
-                ["invalid entity or coords ", state.extract(0), " for ", name].concat(),
+            Err(NeniyError::new(
+                [
+                    "invalid entity or coords \"",
+                    state.extract(0),
+                    "\" for ",
+                    name,
+                ]
+                .concat(),
+                Syntax,
+                state.source_code,
+                state[0].base.start,
+                state[0].base.end,
             ))
         }
+    }
+
+    fn invalid_mode(state: &State, name: &str) -> NeniyError {
+        NeniyError::new(
+            ["invalid mode \"", state.extract(0), "\" for ", name].concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[0].base.end,
+        )
     }
 
     fn simple_command(
@@ -902,8 +945,12 @@ sorted_fns!(
         } else if state[0].kind == TokenKind::OpeningSquareBrace {
             list = aux::capture_list(state)?;
         } else {
-            return Err(Syntax(
-                ["invalid value ", state.extract(0), " in ", NAME].concat(),
+            return Err(NeniyError::new(
+                ["invalid value \"", state.extract(0), "\" for ", NAME].concat(),
+                Syntax,
+                state.source_code,
+                state[0].base.start,
+                state[0].base.end,
             ));
         }
 
@@ -1046,16 +1093,12 @@ sorted_fns!(
                     TokenKind::Block => ex_items_block_parse(state, is_if),
                     TokenKind::Ent => ex_items_ent_parse(state, is_if),
 
-                    _ => Err(Syntax(
-                        ["unknown mode ", state.extract(0), " for ", name].concat(),
-                    )),
+                    _ => Err(invalid_mode(state, name)),
                 })
             }
             TokenKind::Score => ex_score_parse(state, is_if),
 
-            _ => Err(Syntax(
-                ["unknown mode ", state.extract(0), " for ", name].concat(),
-            )),
+            _ => Err(invalid_mode(state, name)),
         })
     }
 
@@ -1073,8 +1116,12 @@ sorted_fns!(
             }
 
             _ => {
-                return Err(Syntax(
-                    "unknown token type in ex_ent_parse() (internal)".to_string(),
+                return Err(NeniyError::new(
+                    "unknown command in ex_ent_parse() (internal)".to_string(),
+                    Syntax,
+                    state.source_code,
+                    state[0].base.start,
+                    state[0].base.end,
                 ));
             }
         });
@@ -1211,8 +1258,18 @@ sorted_fns!(
             aux::check_token(state, 1, "second entity", name, aux::valid_id)?;
             args.push(state[0].base);
         } else {
-            return Err(Syntax(
-                ["invalid range or operator ", state.extract(0), " in ", name].concat(),
+            return Err(NeniyError::new(
+                [
+                    "invalid range or operator \"",
+                    state.extract(0),
+                    "\" in ",
+                    name,
+                ]
+                .concat(),
+                Syntax,
+                state.source_code,
+                state[0].base.start,
+                state[0].base.end,
             ));
         }
 
@@ -1268,9 +1325,7 @@ sorted_fns!(
             TokenKind::Score => ex_store_score_parse(state),
             TokenKind::Storage => ex_store_storage_parse(state),
 
-            _ => Err(Syntax(
-                ["invalid mode ", state.extract(0), " for ", NAME].concat(),
-            )),
+            _ => Err(invalid_mode(state, NAME)),
         })
     }
 
@@ -1361,9 +1416,7 @@ sorted_fns!(
             TokenKind::Add => scb_obj_add_parse(state),
             TokenKind::Set => scb_obj_set_parse(state),
 
-            _ => Err(Syntax(
-                ["invalid mode ", state.extract(0), " for ", NAME].concat(),
-            )),
+            _ => Err(invalid_mode(state, NAME)),
         })
     }
 

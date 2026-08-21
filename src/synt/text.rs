@@ -2,8 +2,8 @@ use sorted_code::sorted_match;
 
 use super::aux::{self, State};
 use crate::{
-    NeniyError::Syntax,
-    Result,
+    ErrorKind::Syntax,
+    NeniyError, Result,
     lexic::token::{BaseToken, TokenKind},
 };
 
@@ -58,13 +58,17 @@ pub fn parse_text(state: &mut State) -> Result<Text> {
                 text.push(unit);
             }
         } else {
-            return Err(Syntax(
+            return Err(NeniyError::new(
                 [
-                    "invalid token: ",
+                    "invalid token: \"",
                     state.extract(0),
-                    " instead of '{' in text",
+                    "\" instead of '{' in text",
                 ]
                 .concat(),
+                Syntax,
+                state.source_code,
+                state[0].base.start,
+                state[0].base.end,
             ));
         }
 
@@ -72,7 +76,13 @@ pub fn parse_text(state: &mut State) -> Result<Text> {
     }
 
     if state.is_empty() {
-        return Err(Syntax("']' not found in text".to_string()));
+        return Err(NeniyError::new(
+            "']' not found in text".to_string(),
+            Syntax,
+            state.source_code,
+            state[-1].base.end,
+            state[-1].base.end,
+        ));
     }
 
     Ok(text)
@@ -116,8 +126,12 @@ fn capture_text_unit(state: &mut State) -> Result<TextUnit> {
             TokenKind::Text => unit.source = capture_source(state)?,
 
             _ => {
-                return Err(Syntax(
-                    ["unknown key ", state.extract(0), " in text"].concat(),
+                return Err(NeniyError::new(
+                    ["unknown key \"", state.extract(0), "\" in text"].concat(),
+                    Syntax,
+                    state.source_code,
+                    state[0].base.start,
+                    state[0].base.end,
                 ));
             }
         });
@@ -126,7 +140,13 @@ fn capture_text_unit(state: &mut State) -> Result<TextUnit> {
     }
 
     if state.is_empty() {
-        return Err(Syntax("'}' not found in text unit".to_string()));
+        return Err(NeniyError::new(
+            "'}' not found in text unit".to_string(),
+            Syntax,
+            state.source_code,
+            state[-1].base.end,
+            state[-1].base.end,
+        ));
     }
 
     Ok(unit)

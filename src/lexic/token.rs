@@ -1,4 +1,4 @@
-use sorted_code::{sorted_consts, sorted_enum, sorted_match, sorted_methods};
+use sorted_code::{sorted_consts, sorted_enum, sorted_match};
 
 #[sorted_enum]
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
@@ -215,14 +215,13 @@ pub struct BaseToken {
     pub end: Index,
 }
 
-#[sorted_methods]
 impl BaseToken {
-    pub fn is_empty(&self) -> bool {
-        self.start == 1 && self.end == 0
-    }
-
     pub fn new_empty() -> Self {
         BaseToken { start: 1, end: 0 }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.start == 1 && self.end == 0
     }
 }
 

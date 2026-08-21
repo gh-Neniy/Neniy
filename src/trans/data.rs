@@ -7,9 +7,9 @@ use super::{
     text,
 };
 use crate::{
-    NeniyError::Translation,
-    Result,
-    lexic::token::{BaseToken, Token, TokenKind},
+    ErrorKind::Translation,
+    NeniyError, Result,
+    lexic::token::{BaseToken, Index, Token, TokenKind},
     synt::{
         aux::ListUnit,
         data::{DataUnit, DataValue, IdWithData},
@@ -81,13 +81,17 @@ fn translate_attribute_unit(node_view: &mut NodeView, unit: &SimpleUnit) -> Resu
             TokenKind::Stability => "knockback_resistance",
 
             _ =>
-                return Err(Translation(
+                return Err(NeniyError::new(
                     [
-                        "unknown attribute ",
+                        "unknown attribute \"",
                         node_view.extract(unit.key.base),
-                        " (internal)",
+                        "\" (internal)",
                     ]
                     .concat(),
+                    Translation,
+                    node_view.source_code,
+                    unit.key.base.start,
+                    unit.key.base.end,
                 )),
         }),
         "\",base:",
@@ -129,13 +133,17 @@ fn translate_equipment_unit(node_view: &mut NodeView, unit: &Equipment) -> Resul
             TokenKind::RightHand => "mainhand",
 
             _ => {
-                return Err(Translation(
+                return Err(NeniyError::new(
                     [
-                        "unknown equipment key ",
+                        "unknown equipment key \"",
                         node_view.extract(unit.key.base),
-                        " (internal)",
+                        "\" (internal)",
                     ]
                     .concat(),
+                    Translation,
+                    node_view.source_code,
+                    unit.key.base.start,
+                    unit.key.base.end,
                 ));
             }
         }),
@@ -196,13 +204,17 @@ fn translate_chance_unit(node_view: &mut NodeView, unit: &SimpleUnit) -> Result<
             TokenKind::RightHandChance => "mainhand:",
 
             _ => {
-                return Err(Translation(
+                return Err(NeniyError::new(
                     [
-                        "unknown chance unit ",
+                        "unknown chance unit \"",
                         node_view.extract(unit.key.base),
-                        " (internal)",
+                        "\" (internal)",
                     ]
                     .concat(),
+                    Translation,
+                    node_view.source_code,
+                    unit.key.base.start,
+                    unit.key.base.end,
                 ));
             }
         }),
@@ -232,16 +244,20 @@ fn block_data_match<'a>(
     unit: &'a DataUnit,
     separator: &str,
     with_comma: bool,
-) -> Result<Option<&'a [Text]>> {
+) -> Result<Option<(&'a [Text], Index, Index)>> {
     if unit.key.kind == TokenKind::Sign {
         let DataValue::Lore(msgs) = &unit.value else {
-            return Err(Translation(
-                "invalid enum variant in block_data_match() for sign: not a lore (internal)"
-                    .to_string(),
-            ));
+            return Err(NeniyError {
+                msg: "invalid DataValue variant in block_data_match() for sign: not a lore (internal)".to_string(),
+                kind: Translation,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0
+            });
         };
 
-        return Ok(Some(msgs));
+        return Ok(Some((msgs, unit.key.base.start, unit.key.base.end)));
     }
 
     if with_comma {
@@ -259,13 +275,17 @@ fn block_data_match<'a>(
 
         other_kind => {
             let DataValue::Id(value) = unit.value else {
-                return Err(Translation(
+                return Err(NeniyError::new(
                     [
-                        "unknown key ",
+                        "unknown key \"",
                         node_view.extract(unit.key.base),
-                        " in block data with non-id value",
+                        "\" in block data with non-id value (internal)",
                     ]
                     .concat(),
+                    Translation,
+                    node_view.source_code,
+                    unit.key.base.start,
+                    unit.key.base.end,
                 ));
             };
 
@@ -279,13 +299,17 @@ fn block_data_match<'a>(
                     node_view.extend(["level", separator, "\"", node_view.extract(value), "\"",]),
 
                 _ => {
-                    return Err(Translation(
+                    return Err(NeniyError::new(
                         [
-                            "unknown key ",
+                            "unknown key \"",
                             node_view.extract(unit.key.base),
-                            " in block data",
+                            "\" in block data",
                         ]
                         .concat(),
+                        Translation,
+                        node_view.source_code,
+                        unit.key.base.start,
+                        unit.key.base.end,
                     ));
                 }
             });
@@ -444,13 +468,17 @@ fn entity_data_match<'a>(
                 Width => node_view.extend(["width:", node_view.extract(unit.value.as_id()?)]),
 
                 _ =>
-                    return Err(Translation(
+                    return Err(NeniyError::new(
                         [
-                            "unknown key ",
+                            "unknown key \"",
                             node_view.extract(unit.key.base),
-                            " in entity data"
+                            "\" in entity data"
                         ]
-                        .concat()
+                        .concat(),
+                        Translation,
+                        node_view.source_code,
+                        unit.key.base.start,
+                        unit.key.base.end,
                     )),
             })
         }
@@ -514,7 +542,13 @@ fn item_data_match(
                 },
                 TokenKind::Unbreakable => node_view.extend(["unbreakable", separator, "{}"]),
 
-                _ => return Err(Translation(["unknown key ", node_view.extract(unit.key.base), " in item data"].concat())),
+                _ => return Err(NeniyError::new(
+                    ["unknown key \"", node_view.extract(unit.key.base), "\" in item data"].concat(),
+                    Translation,
+                    node_view.source_code,
+                    unit.key.base.start,
+                    unit.key.base.end
+                )),
             })
         }
     });
@@ -546,13 +580,17 @@ fn particle_data_match(node_view: &mut NodeView, unit: &DataUnit, with_comma: bo
         }
 
         _ => {
-            return Err(Translation(
+            return Err(NeniyError::new(
                 [
-                    "unknown key ",
+                    "unknown key \"",
                     node_view.extract(unit.key.base),
-                    " in particle data",
+                    "\" in particle data",
                 ]
                 .concat(),
+                Translation,
+                node_view.source_code,
+                unit.key.base.start,
+                unit.key.base.end,
             ));
         }
     });
@@ -568,8 +606,17 @@ fn translate_potion_unit(node_view: &mut NodeView, unit: &SimpleUnit) -> Result<
         }
 
         _ => {
-            return Err(Translation(
-                ["unknown potion unit ", node_view.extract(unit.value)].concat(),
+            return Err(NeniyError::new(
+                [
+                    "unknown potion unit \"",
+                    node_view.extract(unit.value),
+                    "\"",
+                ]
+                .concat(),
+                Translation,
+                node_view.source_code,
+                unit.value.start,
+                unit.value.end,
             ));
         }
     });
@@ -633,7 +680,7 @@ pub fn translate_block_data<'a>(
     node_view: &mut NodeView,
     units: &'a [DataUnit],
     separator: &str,
-) -> Result<Option<&'a [Text]>> {
+) -> Result<Option<(&'a [Text], Index, Index)>> {
     let mut sign_msgs = None;
     let mut with_comma = false;
 

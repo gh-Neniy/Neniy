@@ -3,8 +3,8 @@ use std::{iter::Extend, str};
 use sorted_code::{sorted_match, sorted_methods};
 
 use crate::{
-    NeniyError::Logic,
-    Result,
+    ErrorKind::Logic,
+    NeniyError, Result,
     lexic::token::BaseToken,
     synt::{
         aux::ListUnit,
@@ -28,7 +28,14 @@ impl<'a> NodeView<'a> {
         if let Node::Base { args, .. } = &self.node {
             Ok(args)
         } else {
-            Err(Logic(self.error("Base")))
+            Err(NeniyError {
+                msg: self.error("Base"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -36,7 +43,14 @@ impl<'a> NodeView<'a> {
         if let Node::DoubleSelector(node) = &self.node {
             Ok((&node.args, &node.selector1, &node.selector2))
         } else {
-            Err(Logic(self.error("DoubleSelector")))
+            Err(NeniyError {
+                msg: self.error("DoubleSelector"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -47,7 +61,14 @@ impl<'a> NodeView<'a> {
         {
             Ok((subnodes, run_node))
         } else {
-            Err(Logic(self.error("Ex")))
+            Err(NeniyError {
+                msg: self.error("Ex"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -60,7 +81,14 @@ impl<'a> NodeView<'a> {
         {
             Ok((args, id_with_data_ptr))
         } else {
-            Err(Logic(self.error("IdWithData")))
+            Err(NeniyError {
+                msg: self.error("IdWithData"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -68,7 +96,14 @@ impl<'a> NodeView<'a> {
         if let Node::Selector { args, selector, .. } = &self.node {
             Ok((args, selector))
         } else {
-            Err(Logic(self.error("Selector")))
+            Err(NeniyError {
+                msg: self.error("Selector"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -78,7 +113,14 @@ impl<'a> NodeView<'a> {
         if let Node::SelectorIdWithData(node) = &self.node {
             Ok((&node.args, &node.selector, &node.id_with_data_ptr))
         } else {
-            Err(Logic(self.error("SelectorIdWithData")))
+            Err(NeniyError {
+                msg: self.error("SelectorIdWithData"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -86,7 +128,14 @@ impl<'a> NodeView<'a> {
         if let Node::SelectorList(node) = &self.node {
             Ok((&node.args, &node.selector, &node.list))
         } else {
-            Err(Logic(self.error("SelectorList")))
+            Err(NeniyError {
+                msg: self.error("SelectorList"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -94,7 +143,14 @@ impl<'a> NodeView<'a> {
         if let Node::SelectorText(node) = &self.node {
             Ok((&node.args, &node.selector, &node.text))
         } else {
-            Err(Logic(self.error("SelectorText")))
+            Err(NeniyError {
+                msg: self.error("SelectorText"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -102,7 +158,14 @@ impl<'a> NodeView<'a> {
         if let Node::Text { args, text, .. } = &self.node {
             Ok((args, text))
         } else {
-            Err(Logic(self.error("Text")))
+            Err(NeniyError {
+                msg: self.error("Text"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 

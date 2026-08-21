@@ -5,8 +5,8 @@ use super::{
     text::{self, Text, TextUnit},
 };
 use crate::{
-    NeniyError::{Logic, Syntax},
-    Result,
+    ErrorKind::{Logic, Syntax},
+    NeniyError, Result,
     lexic::token::{BaseToken, Token, TokenKind},
 };
 
@@ -50,7 +50,14 @@ impl DataValue {
         if let DataValue::Data(data_ptr) = self {
             Ok(data_ptr)
         } else {
-            Err(Logic(self.error("Data")))
+            Err(NeniyError {
+                msg: self.error("Data"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -58,7 +65,14 @@ impl DataValue {
         if let DataValue::Id(id) = self {
             Ok(*id)
         } else {
-            Err(Logic(self.error("Id")))
+            Err(NeniyError {
+                msg: self.error("Id"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -66,7 +80,14 @@ impl DataValue {
         if let DataValue::IdWithData(id_with_data_ptr) = self {
             Ok(id_with_data_ptr)
         } else {
-            Err(Logic(self.error("IdWithData")))
+            Err(NeniyError {
+                msg: self.error("IdWithData"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -74,7 +95,14 @@ impl DataValue {
         if let DataValue::List(list) = self {
             Ok(list)
         } else {
-            Err(Logic(self.error("List")))
+            Err(NeniyError {
+                msg: self.error("List"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -82,7 +110,14 @@ impl DataValue {
         if let DataValue::Lore(lore) = self {
             Ok(lore)
         } else {
-            Err(Logic(self.error("Lore")))
+            Err(NeniyError {
+                msg: self.error("Lore"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -90,7 +125,14 @@ impl DataValue {
         if let DataValue::Text(text) = self {
             Ok(text)
         } else {
-            Err(Logic(self.error("Text")))
+            Err(NeniyError {
+                msg: self.error("Text"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
         }
     }
 
@@ -175,8 +217,12 @@ fn capture_lore(state: &mut State) -> Result<Vec<Text>> {
         }
 
         if !aux::valid_text(state[0]) {
-            return Err(Syntax(
-                ["invalid text bound ", state.extract(0), " in lore"].concat(),
+            return Err(NeniyError::new(
+                ["invalid text bound \"", state.extract(0), "\" in lore"].concat(),
+                Syntax,
+                state.source_code,
+                state[0].base.start,
+                state[0].base.end,
             ));
         }
 
@@ -186,7 +232,13 @@ fn capture_lore(state: &mut State) -> Result<Vec<Text>> {
     }
 
     if state.is_empty() {
-        return Err(Syntax("']' not found for lore".to_string()));
+        return Err(NeniyError::new(
+            "']' not found for lore".to_string(),
+            Syntax,
+            state.source_code,
+            state[-1].base.end,
+            state[-1].base.end,
+        ));
     }
 
     Ok(lore)
@@ -275,8 +327,12 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
         Scale => capture_numeric_or_list_item(state),
         Tag => capture_value_item(state),
 
-        _ => Err(Syntax(
-            ["unknown key ", state.extract(0), " in data unit"].concat(),
+        _ => Err(NeniyError::new(
+            ["unknown key \"", state.extract(0), "\" in data unit"].concat(),
+            Syntax,
+            state.source_code,
+            state[0].base.start,
+            state[0].base.end,
         )),
     })
 }
@@ -298,7 +354,13 @@ fn parse_data_units(state: &mut State) -> Result<Vec<DataUnit>> {
     }
 
     if state.is_empty() {
-        return Err(Syntax("']' not found for data".to_string()));
+        return Err(NeniyError::new(
+            "']' not found for data".to_string(),
+            Syntax,
+            state.source_code,
+            state[-1].base.end,
+            state[-1].base.end,
+        ));
     }
 
     Ok(units)
