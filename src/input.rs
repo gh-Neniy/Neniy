@@ -56,7 +56,7 @@ fn parse_arg(arg: &str, paths: &mut Vec<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-fn validate(mc_version: &str, paths: &[PathBuf], output_dir: &str) -> Result<()> {
+fn validate(is_check: bool, mc_version: &str, paths: &[PathBuf], output_dir: &str) -> Result<()> {
     if mc_version.is_empty() {
         return Err(NeniyError::new_io(
             "minecraft version in not specified".to_string(),
@@ -65,7 +65,7 @@ fn validate(mc_version: &str, paths: &[PathBuf], output_dir: &str) -> Result<()>
     if paths.is_empty() {
         return Err(NeniyError::new_io("no one path specified".to_string()));
     }
-    if output_dir.is_empty() {
+    if !is_check && output_dir.is_empty() {
         return Err(NeniyError::new_io(
             "output directory is not specified".to_string(),
         ));
@@ -97,7 +97,7 @@ pub fn parse_input() -> Result<(bool, String, Vec<PathBuf>, String)> {
         }
     }
 
-    validate(&mc_version, &paths, &output_dir)?;
+    validate(is_check, &mc_version, &paths, &output_dir)?;
 
     Ok((is_check, mc_version, paths, output_dir))
 }

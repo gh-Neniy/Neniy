@@ -64,7 +64,7 @@ pub fn compile_on_paths(paths: &[PathBuf], output_dir: &str, is_check: bool) -> 
             }
         }
 
-        println!("{json_errors:?}");
+        println!("[{}]", json_errors.join(","));
     } else {
         for compile_result in compile_results {
             if let Err((path, error)) = compile_result {
