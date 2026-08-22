@@ -12,11 +12,13 @@ fn parse_flag(
     flag: &str,
     args: &mut Args,
     is_check: &mut bool,
+    json_output: &mut bool,
     mc_version: &mut String,
     output_dir: &mut String,
 ) -> Result<()> {
     match flag {
-        "--check" => *is_check = true,
+        "-c" => *is_check = true,
+        "-j" => *json_output = true,
         "-v" => {
             *mc_version = flag_value(args, "mc_version")?;
         }
@@ -74,11 +76,12 @@ fn validate(is_check: bool, mc_version: &str, paths: &[PathBuf], output_dir: &st
     Ok(())
 }
 
-pub fn parse_input() -> Result<(bool, String, Vec<PathBuf>, String)> {
+pub fn parse_input() -> Result<(bool, bool, String, Vec<PathBuf>, String)> {
     let mut args = std::env::args();
     args.next();
 
     let mut is_check = false;
+    let mut json_output = false;
     let mut mc_version = String::new();
     let mut paths = Vec::new();
     let mut output_dir = String::new();
@@ -89,6 +92,7 @@ pub fn parse_input() -> Result<(bool, String, Vec<PathBuf>, String)> {
                 &arg,
                 &mut args,
                 &mut is_check,
+                &mut json_output,
                 &mut mc_version,
                 &mut output_dir,
             )?;
@@ -99,5 +103,5 @@ pub fn parse_input() -> Result<(bool, String, Vec<PathBuf>, String)> {
 
     validate(is_check, &mc_version, &paths, &output_dir)?;
 
-    Ok((is_check, mc_version, paths, output_dir))
+    Ok((is_check, json_output, mc_version, paths, output_dir))
 }
