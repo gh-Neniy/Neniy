@@ -44,6 +44,7 @@ pub enum Command {
     Native,
     Pls,
     Ptc,
+    Random,
     Say,
     ScbObjAdd,
     ScbObjSet,

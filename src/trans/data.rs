@@ -405,6 +405,13 @@ fn entity_data_match<'a>(
                     node_view.push_str("item:");
                     translate_item(node_view, unit.value.as_id_with_data()?)?;
                 }
+                Billboard => {
+                    node_view.extend([
+                        "billboard:\"",
+                        node_view.extract(unit.value.as_id()?),
+                        "\"",
+                    ]);
+                }
                 Block => translate_block_state(node_view, unit, is_falling_block)?,
                 CanGrab => node_view.push_str("CanPickUpLoot:1b"),
                 Crit => node_view.push_str("crit:1b"),

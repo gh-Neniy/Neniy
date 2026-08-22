@@ -30,6 +30,7 @@ pub enum TokenKind {
     AttackSpeed,
     Attribute,
     Axis,
+    Billboard,
     Block,
     Blue,
     Bold,
@@ -128,6 +129,7 @@ pub enum TokenKind {
     PotionColor,
     Powered,
     Ptc,
+    Random,
     Range,
     Red,
     Remove,
@@ -335,6 +337,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const POTION: u64 = hash(b"potion");
         const POWERED: u64 = hash(b"powered");
         const PTC: u64 = hash(b"ptc");
+        const RANDOM: u64 = hash(b"random");
         const RANGE: u64 = hash(b"..");
         const RED: u64 = hash(b"red");
         const REMOVE: u64 = hash(b"remove");
@@ -484,6 +487,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         POTION => TokenKind::Potion,
         POWERED => TokenKind::Powered,
         PTC => TokenKind::Ptc,
+        RANDOM => TokenKind::Random,
         RANGE => TokenKind::Range,
         RED => TokenKind::Red,
         REMOVE => TokenKind::Remove,
@@ -553,6 +557,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"attack_damage" => TokenKind::AttackDamage,
         b"attack_speed" => TokenKind::AttackSpeed,
         b"attribute" => TokenKind::Attribute,
+        b"billboard" => TokenKind::Billboard,
         b"can_place_on" => TokenKind::CanPlaceOn,
         b"chest_chance" => TokenKind::ChestChance,
         b"dark_blue" => TokenKind::DarkBlue,

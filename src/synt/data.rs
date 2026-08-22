@@ -316,7 +316,8 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
         | RightHandChance | Size | Stability | Stack | TpTime | Width => {
             capture_numeric_item(state)
         }
-        Axis | CanPlaceOn | Facing | Half | LootTable | Potion => capture_id_item(state),
+        Axis | Billboard | CanPlaceOn | Facing | Half | LootTable | Potion =>
+            capture_id_item(state),
         CanGrab | Crit | East | Hide | InGround | Interaction | Invisible | Invulnerable | Lit
         | NameVisible | NoAI | NoDespawn | NoGravity | North | Open | Powered | Shine | Silent
         | South | Unbreakable | West => Ok(capture_mono_item(state)),

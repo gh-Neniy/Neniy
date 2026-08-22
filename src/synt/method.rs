@@ -42,6 +42,7 @@ pub fn choose_parse(state: &mut State) -> Result<Node> {
         TokenKind::Native => native_parse(state),
         TokenKind::Pls => pls_parse(state),
         TokenKind::Ptc => ptc_parse(state),
+        TokenKind::Random => random_parse(state),
         TokenKind::Say => say_parse(state),
         TokenKind::Scb => scb_parse(state),
         TokenKind::Setblock => setblock_parse(state),
@@ -441,6 +442,15 @@ sorted_fns!(
             args,
             command: Command::Ptc,
             id_with_data_ptr,
+        })
+    }
+
+    pub fn random_parse(state: &mut State) -> Result<Node> {
+        aux::check_token(state, 1, "range", "random", aux::valid_range)?;
+
+        Ok(Node::Base {
+            args: vec![aux::capture_range(state)?],
+            command: Command::Random,
         })
     }
 

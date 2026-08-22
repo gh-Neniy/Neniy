@@ -310,6 +310,7 @@ pub fn choose_translate(node_view: &mut NodeView, path: &Path) -> Result<()> {
         Command::Native => translate_native(node_view),
         Command::Pls => translate_pls(node_view),
         Command::Ptc => translate_ptc(node_view),
+        Command::Random => translate_random(node_view),
         Command::Say => translate_say(node_view),
         Command::ScbObjAdd => translate_scb_obj_add(node_view),
         Command::ScbObjSet => translate_scb_obj_set(node_view),
@@ -826,6 +827,13 @@ fn translate_ptc(node_view: &mut NodeView) -> Result<()> {
         node_view.extract(args[8]), // mode
     ]);
 
+    Ok(())
+}
+
+fn translate_random(node_view: &mut NodeView) -> Result<()> {
+    let args = node_view.as_base()?;
+
+    node_view.extend(["random value ", node_view.extract(args[0])]);
     Ok(())
 }
 
