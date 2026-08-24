@@ -39,6 +39,7 @@ pub fn choose_parse(state: &mut State) -> Result<Node> {
         TokenKind::Give => give_parse(state),
         TokenKind::Gm => gm_parse(state),
         TokenKind::Kill => kill_parse(state),
+        TokenKind::Loot => loot_parse(state),
         TokenKind::Native => native_parse(state),
         TokenKind::Pls => pls_parse(state),
         TokenKind::Ptc => ptc_parse(state),
@@ -386,6 +387,10 @@ sorted_fns!(
             command: Command::Kill,
             selector,
         })
+    }
+
+    pub fn loot_parse(state: &mut State) -> Result<Node> {
+        simple_command(state, "loot", aux::valid_id, Command::Loot)
     }
 
     pub fn native_parse(state: &mut State) -> Result<Node> {

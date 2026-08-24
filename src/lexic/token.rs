@@ -102,6 +102,7 @@ pub enum TokenKind {
     Level,
     Limit,
     Lit,
+    Loot,
     LootTable,
     Lore,
     Masked,
@@ -115,6 +116,7 @@ pub enum TokenKind {
     NoAI,
     NoDespawn,
     NoGravity,
+    NoTrade,
     Normal,
     North,
     Numeric,
@@ -128,6 +130,7 @@ pub enum TokenKind {
     Potion,
     PotionColor,
     Powered,
+    Profession,
     Ptc,
     Random,
     Range,
@@ -251,6 +254,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const ABOUT: u64 = hash(b"about");
         const ADD: u64 = hash(b"add");
         const ALIGN: u64 = hash(b"align");
+        const ALT: u64 = hash(b"alt");
         const ANCHORED: u64 = hash(b"anchored");
         const AS: u64 = hash(b"as");
         const AT: u64 = hash(b"at");
@@ -315,6 +319,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const LEVEL: u64 = hash(b"level");
         const LIMIT: u64 = hash(b"limit");
         const LIT: u64 = hash(b"lit");
+        const LOOT: u64 = hash(b"loot");
         const LORE: u64 = hash(b"lore");
         const MASKED: u64 = hash(b"masked");
         const MAX: u64 = hash(b"max");
@@ -326,6 +331,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const NORMAL: u64 = hash(b"normal");
         const NORTH: u64 = hash(b"north");
         const NO_AI: u64 = hash(b"no_ai");
+        const NO_TRADE: u64 = hash(b"no_trade");
         const OBJ: u64 = hash(b"obj");
         const OPEN: u64 = hash(b"open");
         const OPENING_CURLY_BRACE: u64 = hash(b"{");
@@ -401,6 +407,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         ABOUT => TokenKind::About,
         ADD => TokenKind::Add,
         ALIGN => TokenKind::Align,
+        ALT => TokenKind::Alt,
         ANCHORED => TokenKind::Anchored,
         AS => TokenKind::As,
         AT => TokenKind::At,
@@ -465,6 +472,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         LEVEL => TokenKind::Level,
         LIMIT => TokenKind::Limit,
         LIT => TokenKind::Lit,
+        LOOT => TokenKind::Loot,
         LORE => TokenKind::Lore,
         MASKED => TokenKind::Masked,
         MAX => TokenKind::Max,
@@ -476,6 +484,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         NORMAL => TokenKind::Normal,
         NORTH => TokenKind::North,
         NO_AI => TokenKind::NoAI,
+        NO_TRADE => TokenKind::NoTrade,
         OBJ => TokenKind::Obj,
         OPEN => TokenKind::Open,
         OPENING_CURLY_BRACE => TokenKind::OpeningCurlyBrace,
@@ -566,7 +575,6 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"feet_chance" => TokenKind::FeetChance,
         b"from_color" => TokenKind::FromColor,
         b"head_chance" => TokenKind::HeadChance,
-        b"hieroglyph" => TokenKind::Alt,
         b"hurt_time" => TokenKind::HurtTime,
         b"in_ground" => TokenKind::InGround,
         b"interaction" => TokenKind::Interaction,
@@ -581,6 +589,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"no_gravity" => TokenKind::NoGravity,
         b"pickup_delay" => TokenKind::PickupDelay,
         b"potion_color" => TokenKind::PotionColor,
+        b"profession" => TokenKind::Profession,
         b"right_hand" => TokenKind::RightHand,
         b"right_hand_chance" => TokenKind::RightHandChance,
         b"selected_item" => TokenKind::SelectedItem,

@@ -1,5 +1,5 @@
 use sorted_code::sorted_match;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use super::{
     aux::{self, NodeView},
@@ -271,9 +271,11 @@ fn translate_ex_facing(node_view: &mut NodeView) -> Result<()> {
     let (args, selector) = node_view.as_selector()?;
 
     if selector.kind != TokenKind::Id {
+        node_view.push_str("entity ");
         selector::translate_selector(node_view, selector)?;
+        node_view.push_str(" feet");
     } else if args.len() == 1 {
-        node_view.push_str(node_view.extract(args[0]));
+        node_view.extend(["entity ", node_view.extract(args[0]), " feet"]);
     } else {
         node_view.extend([
             node_view.extract(args[0]),
@@ -287,9 +289,90 @@ fn translate_ex_facing(node_view: &mut NodeView) -> Result<()> {
     Ok(())
 }
 
+fn translate_with_file_check(
+    node_view: &mut NodeView,
+    mut path: &Path,
+    id: BaseToken,
+    dir_name: &str,
+    extension: &str,
+) -> Result<()> {
+    while path.file_name().unwrap() != "function"
+        && let Some(parent) = path.parent()
+    {
+        path = parent;
+    }
+
+    if path.file_name().unwrap() != "function" {
+        return Err(NeniyError {
+            msg: ["directory \"", dir_name, "\" not found"].concat(),
+            kind: Translation,
+            start_row: 0,
+            start_col: 0,
+            end_row: 0,
+            end_col: 0,
+        });
+    }
+
+    let id_body = node_view.extract(id);
+    let mut target_path = PathBuf::new();
+
+    if dir_name == "function" {
+        target_path.push(path);
+    } else {
+        if let Some(parent) = path.parent() {
+            path = parent;
+        } else {
+            return Err(NeniyError {
+                msg: ["namespace directory not found"].concat(),
+                kind: Translation,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            });
+        }
+
+        target_path.push(path);
+        target_path.push(dir_name);
+    }
+
+    target_path.push(id_body);
+    target_path.set_extension(extension);
+
+    if !target_path.is_file() {
+        return Err(NeniyError::new(
+            ["no such ", dir_name, ": ", id_body].concat(),
+            Translation,
+            node_view.source_code,
+            id.start,
+            id.end,
+        ));
+    }
+
+    while let Some(parent) = path.parent()
+        && parent.file_name().unwrap() != "data"
+    {
+        path = parent;
+    }
+
+    if path.parent().is_none() {
+        return Err(NeniyError {
+            msg: "parent directory \"data\" not found".to_string(),
+            kind: Translation,
+            start_row: 0,
+            start_col: 0,
+            end_row: 0,
+            end_col: 0,
+        });
+    }
+
+    node_view.extend([path.file_name().unwrap().to_str().unwrap(), ":", id_body]);
+    Ok(())
+}
+
 pub fn choose_translate(node_view: &mut NodeView, path: &Path) -> Result<()> {
     sorted_match!(match node_view.command() {
-        Command::Advancement => translate_advancement(node_view),
+        Command::Advancement => translate_advancement(node_view, path),
         Command::Attribute => translate_attribute(node_view),
         Command::BossbarAdd => translate_bossbar_add(node_view),
         Command::BossbarRemove => translate_bossbar_remove(node_view),
@@ -307,6 +390,7 @@ pub fn choose_translate(node_view: &mut NodeView, path: &Path) -> Result<()> {
         Command::Give => translate_give(node_view),
         Command::Gm => translate_gm(node_view),
         Command::Kill => translate_kill(node_view),
+        Command::Loot => translate_loot(node_view, path),
         Command::Native => translate_native(node_view),
         Command::Pls => translate_pls(node_view),
         Command::Ptc => translate_ptc(node_view),
@@ -340,13 +424,15 @@ pub fn choose_translate(node_view: &mut NodeView, path: &Path) -> Result<()> {
     })
 }
 
-fn translate_advancement(node_view: &mut NodeView) -> Result<()> {
+fn translate_advancement(node_view: &mut NodeView, path: &Path) -> Result<()> {
     node_view.push_str("advancement grant ");
 
     let (args, selector) = node_view.as_selector()?;
     let current_arg = translate_entity(node_view, args, selector, 0)?;
 
-    node_view.extend([" only ", node_view.extract(args[current_arg])]);
+    node_view.push_str(" only ");
+
+    translate_with_file_check(node_view, path, args[current_arg], "advancement", "json")?;
 
     Ok(())
 }
@@ -533,7 +619,14 @@ fn translate_data_modify(node_view: &mut NodeView) -> Result<()> {
     ]);
 
     if list.is_empty() {
-        node_view.extend(["\"", node_view.extract(args[current_arg + 2]), "\""]);
+        let raw_value = args[current_arg + 2];
+        let value = node_view.extract(raw_value);
+
+        if node_view.source_code[raw_value.start as usize].is_ascii_digit() {
+            node_view.push_str(value);
+        } else {
+            node_view.extend(["\"", value, "\""]);
+        }
     } else {
         aux::translate_numeric_list(node_view, list, "f");
     }
@@ -660,59 +753,11 @@ fn translate_fill(node_view: &mut NodeView) -> Result<()> {
     Ok(())
 }
 
-fn translate_fn(node_view: &mut NodeView, mut path: &Path) -> Result<()> {
+fn translate_fn(node_view: &mut NodeView, path: &Path) -> Result<()> {
     node_view.push_str("function ");
 
-    while path.file_name().unwrap() != "function"
-        && let Some(parent) = path.parent()
-    {
-        path = parent;
-    }
-
-    if path.file_name().unwrap() != "function" {
-        return Err(NeniyError {
-            msg: "parent directory \"function\" not found".to_string(),
-            kind: Translation,
-            start_row: 0,
-            start_col: 0,
-            end_row: 0,
-            end_col: 0,
-        });
-    }
-
     let args = node_view.as_base()?;
-    let fn_body = node_view.extract(args[0]);
-    let mut target_path = path.join(fn_body);
-    target_path.set_extension("neniy");
-
-    if !target_path.is_file() {
-        return Err(NeniyError::new(
-            ["no such function: ", fn_body].concat(),
-            Translation,
-            node_view.source_code,
-            args[0].start,
-            args[0].end,
-        ));
-    }
-
-    while let Some(parent) = path.parent()
-        && parent.file_name().unwrap() != "data"
-    {
-        path = parent;
-    }
-
-    if path.parent().is_none() {
-        return Err(NeniyError {
-            msg: "parent directory \"data\" not found".to_string(),
-            kind: Translation,
-            start_row: 0,
-            start_col: 0,
-            end_row: 0,
-            end_col: 0,
-        });
-    }
-
-    node_view.extend([path.file_name().unwrap().to_str().unwrap(), ":", fn_body]);
+    translate_with_file_check(node_view, path, args[0], "function", "neniy")?;
 
     if args.len() == 2 {
         node_view.extend([" with storage ", node_view.extract(args[1])]);
@@ -779,6 +824,15 @@ fn translate_kill(node_view: &mut NodeView) -> Result<()> {
 
     let (args, selector) = node_view.as_selector()?;
     translate_entity(node_view, args, selector, 0)?;
+
+    Ok(())
+}
+
+fn translate_loot(node_view: &mut NodeView, path: &Path) -> Result<()> {
+    node_view.push_str("loot spawn ~ ~ ~ loot ");
+
+    let args = node_view.as_base()?;
+    translate_with_file_check(node_view, path, args[0], "loot_table", "json")?;
 
     Ok(())
 }

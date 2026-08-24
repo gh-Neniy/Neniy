@@ -448,8 +448,14 @@ fn entity_data_match<'a>(
                 NoAI => node_view.push_str("NoAI:1b"),
                 NoDespawn => node_view.push_str("PersistenceRequired:1b"),
                 NoGravity => node_view.push_str("NoGravity:1b"),
+                NoTrade => node_view.push_str("Offers:{}"),
                 PickupDelay =>
                     node_view.extend(["PickupDelay:", node_view.extract(unit.value.as_id()?)]),
+                Profession => node_view.extend([
+                    "VillagerData:{profession:\"",
+                    node_view.extract(unit.value.as_id()?),
+                    "\",level:2,type:\"plains\"}"
+                ]),
                 Rotation => {
                     node_view.push_str("Rotation:");
                     aux::translate_numeric_list(node_view, unit.value.as_list()?, "f");

@@ -41,6 +41,7 @@ pub enum Command {
     Give,
     Gm,
     Kill,
+    Loot,
     Native,
     Pls,
     Ptc,
