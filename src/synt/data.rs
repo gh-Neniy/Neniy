@@ -309,18 +309,18 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
     use TokenKind::*;
 
     sorted_match!(match state[0].kind {
-        About | Block | Chest | Feet | Head | Item | LeftHand | Legs | RightHand | SelectedItem =>
-            capture_id_with_data_item(state),
+        About | Block | Chest | Feet | Head | Item | LeftHand | Legs | Passenger | RightHand
+        | SelectedItem => capture_id_with_data_item(state),
         AttackDamage | AttackSpeed | ChestChance | FeetChance | HeadChance | Health | Height
         | HurtTime | LeftHandChance | LegsChance | Level | PickupDelay | PotionColor
         | RightHandChance | Size | Stability | Stack | TpTime | Width => {
             capture_numeric_item(state)
         }
-        Axis | Billboard | CanPlaceOn | Facing | Half | LootTable | Potion | Profession =>
-            capture_id_item(state),
+        Axis | Billboard | CanBreak | CanPlaceOn | Effect | Facing | Half | LootTable | Potion
+        | Profession | Type => capture_id_item(state),
         CanGrab | Crit | East | Hide | InGround | Interaction | Invisible | Invulnerable | Lit
-        | NameVisible | NoAI | NoDespawn | NoGravity | NoTrade | North | Open | Powered | Shine
-        | Silent | South | Unbreakable | West => Ok(capture_mono_item(state)),
+        | Marker | NameVisible | NoAI | NoDespawn | NoGravity | NoTrade | North | Open
+        | Powered | Shine | Silent | South | Unbreakable | West => Ok(capture_mono_item(state)),
         Data => capture_data_item(state),
         Enchantments | FromColor | Rotation | ToColor => capture_list_type_item(state),
         Lore | Sign => capture_lore_item(state),

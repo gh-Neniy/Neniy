@@ -35,6 +35,7 @@ pub enum TokenKind {
     Blue,
     Bold,
     Bossbar,
+    CanBreak,
     CanGrab,
     CanPlaceOn,
     Caret,
@@ -105,6 +106,7 @@ pub enum TokenKind {
     Loot,
     LootTable,
     Lore,
+    Marker,
     Masked,
     Max,
     Modify,
@@ -123,6 +125,7 @@ pub enum TokenKind {
     Obj,
     Open,
     Opr,
+    Passenger,
     PickupDelay,
     Players,
     Pls,
@@ -321,6 +324,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const LIT: u64 = hash(b"lit");
         const LOOT: u64 = hash(b"loot");
         const LORE: u64 = hash(b"lore");
+        const MARKER: u64 = hash(b"marker");
         const MASKED: u64 = hash(b"masked");
         const MAX: u64 = hash(b"max");
         const MODIFY: u64 = hash(b"modify");
@@ -474,6 +478,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         LIT => TokenKind::Lit,
         LOOT => TokenKind::Loot,
         LORE => TokenKind::Lore,
+        MARKER => TokenKind::Marker,
         MASKED => TokenKind::Masked,
         MAX => TokenKind::Max,
         MODIFY => TokenKind::Modify,
@@ -567,6 +572,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"attack_speed" => TokenKind::AttackSpeed,
         b"attribute" => TokenKind::Attribute,
         b"billboard" => TokenKind::Billboard,
+        b"can_break" => TokenKind::CanBreak,
         b"can_place_on" => TokenKind::CanPlaceOn,
         b"chest_chance" => TokenKind::ChestChance,
         b"dark_blue" => TokenKind::DarkBlue,
@@ -587,6 +593,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"name_visible" => TokenKind::NameVisible,
         b"no_despawn" => TokenKind::NoDespawn,
         b"no_gravity" => TokenKind::NoGravity,
+        b"passenger" => TokenKind::Passenger,
         b"pickup_delay" => TokenKind::PickupDelay,
         b"potion_color" => TokenKind::PotionColor,
         b"profession" => TokenKind::Profession,

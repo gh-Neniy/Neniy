@@ -244,6 +244,7 @@ fn block_data_match<'a>(
     unit: &'a DataUnit,
     separator: &str,
     with_comma: bool,
+    is_wall: bool,
 ) -> Result<Option<(&'a [Text], Index, Index)>> {
     if unit.key.kind == TokenKind::Sign {
         let DataValue::Lore(msgs) = &unit.value else {
@@ -264,14 +265,16 @@ fn block_data_match<'a>(
         node_view.push(',');
     }
 
+    let value_for_sides = if is_wall { "\"low\"" } else { "\"true\"" };
+
     sorted_match!(match unit.key.kind {
-        TokenKind::East => node_view.extend(["east", separator, "\"true\""]),
-        TokenKind::Lit => node_view.extend(["lit", separator, "\"true\""]),
-        TokenKind::North => node_view.extend(["north", separator, "\"true\""]),
-        TokenKind::Open => node_view.extend(["open", separator, "\"true\""]),
-        TokenKind::Powered => node_view.extend(["powered", separator, "\"true\""]),
-        TokenKind::South => node_view.extend(["south", separator, "\"true\""]),
-        TokenKind::West => node_view.extend(["west", separator, "\"true\""]),
+        TokenKind::East => node_view.extend(["east", separator, value_for_sides]),
+        TokenKind::Lit => node_view.extend(["lit", separator, value_for_sides]),
+        TokenKind::North => node_view.extend(["north", separator, value_for_sides]),
+        TokenKind::Open => node_view.extend(["open", separator, value_for_sides]),
+        TokenKind::Powered => node_view.extend(["powered", separator, value_for_sides]),
+        TokenKind::South => node_view.extend(["south", separator, value_for_sides]),
+        TokenKind::West => node_view.extend(["west", separator, value_for_sides]),
 
         other_kind => {
             let DataValue::Id(value) = unit.value else {
@@ -297,6 +300,8 @@ fn block_data_match<'a>(
                     node_view.extend(["half", separator, "\"", node_view.extract(value), "\"",]),
                 TokenKind::Level =>
                     node_view.extend(["level", separator, "\"", node_view.extract(value), "\"",]),
+                TokenKind::Type =>
+                    node_view.extend(["type", separator, "\"", node_view.extract(value), "\"",]),
 
                 _ => {
                     return Err(NeniyError::new(
@@ -345,18 +350,15 @@ fn translate_block_state(
         "block_state"
     };
 
-    node_view.extend([
-        block_state,
-        ":{Name:\"minecraft:",
-        node_view.extract(id_with_data.id),
-        "\"",
-    ]);
+    let id = node_view.extract(id_with_data.id);
+
+    node_view.extend([block_state, ":{Name:\"minecraft:", id, "\""]);
 
     if id_with_data.data.is_empty() {
         node_view.push('}');
     } else {
         node_view.push_str(",Properties:{");
-        translate_block_data(node_view, &id_with_data.data, ":")?;
+        translate_block_data(node_view, &id_with_data.data, ":", id.contains("_wall"))?;
         node_view.push_str("}}");
     }
 
@@ -415,6 +417,11 @@ fn entity_data_match<'a>(
                 Block => translate_block_state(node_view, unit, is_falling_block)?,
                 CanGrab => node_view.push_str("CanPickUpLoot:1b"),
                 Crit => node_view.push_str("crit:1b"),
+                Effect => node_view.extend([
+                    "active_effects:[{id:\"",
+                    node_view.extract(unit.value.as_id()?),
+                    "\",duration:-1,show_particles:0b}]"
+                ]),
                 Health => {
                     let value = unit.value.as_id()?;
 
@@ -440,6 +447,7 @@ fn entity_data_match<'a>(
                     node_view.extract(unit.value.as_id()?),
                     "\""
                 ]),
+                Marker => node_view.push_str("Marker:1b"),
                 Name => {
                     node_view.push_str("CustomName:");
                     text::translate_text(node_view, unit.value.as_text()?);
@@ -449,6 +457,22 @@ fn entity_data_match<'a>(
                 NoDespawn => node_view.push_str("PersistenceRequired:1b"),
                 NoGravity => node_view.push_str("NoGravity:1b"),
                 NoTrade => node_view.push_str("Offers:{}"),
+                Passenger => {
+                    let id_with_data = unit.value.as_id_with_data()?;
+
+                    node_view.extend([
+                        "Passengers:[{id:\"",
+                        node_view.extract(id_with_data.id),
+                        "\"",
+                    ]);
+
+                    if !id_with_data.data.is_empty() {
+                        node_view.push(',');
+                        translate_entity_data(node_view, &id_with_data.data, false)?;
+                    }
+
+                    node_view.push_str("}]");
+                }
                 PickupDelay =>
                     node_view.extend(["PickupDelay:", node_view.extract(unit.value.as_id()?)]),
                 Profession => node_view.extend([
@@ -526,6 +550,9 @@ fn item_data_match(
             }
 
             sorted_match!(match other_kind {
+                TokenKind::CanBreak => node_view.extend([
+                    "can_break", separator, "{\"blocks\":\"", node_view.extract(unit.value.as_id()?), "\"}"
+                ]),
                 TokenKind::CanPlaceOn => node_view.extend([
                     "can_place_on", separator, "{\"blocks\":\"", node_view.extract(unit.value.as_id()?), "\"}"
                 ]),
@@ -536,7 +563,7 @@ fn item_data_match(
                 TokenKind::Hide => node_view.extend([
                     "tooltip_display",
                     separator,
-                    "{hidden_components:[\"attribute_modifiers\",\"enchantments\",\"unbreakable\",\"can_place_on\",\"potion_contents\"]}"
+                    "{hidden_components:[\"attribute_modifiers\",\"enchantments\",\"unbreakable\",\"can_place_on\",\"can_break\",\"potion_contents\"]}"
                 ]),
                 TokenKind::Lore => {
                     node_view.extend(["lore", separator]);
@@ -693,18 +720,27 @@ pub fn translate_block_data<'a>(
     node_view: &mut NodeView,
     units: &'a [DataUnit],
     separator: &str,
+    is_wall: bool,
 ) -> Result<Option<(&'a [Text], Index, Index)>> {
     let mut sign_msgs = None;
     let mut with_comma = false;
 
     for unit in units.iter() {
-        let msgs = block_data_match(node_view, unit, separator, with_comma)?;
+        let msgs = block_data_match(node_view, unit, separator, with_comma, is_wall)?;
 
         if msgs.is_none() {
             with_comma = true;
         } else {
             sign_msgs = msgs;
         }
+    }
+
+    if is_wall {
+        if with_comma {
+            node_view.push(',');
+        }
+
+        node_view.extend(["up", separator, "\"false\""]);
     }
 
     Ok(sign_msgs)

@@ -12,9 +12,9 @@ use crate::{
     synt::{data::DataUnit, node::Command, selector::Selector},
 };
 
-fn translate_block_data(node_view: &mut NodeView, units: &[DataUnit]) -> Result<()> {
+fn translate_block_data(node_view: &mut NodeView, units: &[DataUnit], is_wall: bool) -> Result<()> {
     node_view.push('[');
-    let sign_msgs = data::translate_block_data(node_view, units, "=")?;
+    let sign_msgs = data::translate_block_data(node_view, units, "=", is_wall)?;
     node_view.push(']');
 
     if let Some((sign_msgs, key_start, key_end)) = sign_msgs {
@@ -72,6 +72,7 @@ fn translate_ex_at(node_view: &mut NodeView) -> Result<()> {
 
 fn translate_ex_block(node_view: &mut NodeView) -> Result<()> {
     let (args, id_with_data) = node_view.as_id_with_data()?;
+    let id = node_view.extract(id_with_data.id);
 
     node_view.extend([
         node_view.extract(args[0]), // if | unless
@@ -82,11 +83,11 @@ fn translate_ex_block(node_view: &mut NodeView) -> Result<()> {
         " ",
         node_view.extract(args[3]), // z
         " ",
-        node_view.extract(id_with_data.id), // block
+        id, // block
     ]);
 
     if !id_with_data.data.is_empty() {
-        translate_block_data(node_view, &id_with_data.data)?;
+        translate_block_data(node_view, &id_with_data.data, id.contains("_wall"))?;
     }
 
     Ok(())
@@ -722,6 +723,7 @@ fn translate_ex(node_view: &mut NodeView, path: &Path) -> Result<()> {
 
 fn translate_fill(node_view: &mut NodeView) -> Result<()> {
     let (args, id_with_data) = node_view.as_id_with_data()?;
+    let id = node_view.extract(id_with_data.id);
 
     node_view.extend([
         "fill ",
@@ -737,11 +739,11 @@ fn translate_fill(node_view: &mut NodeView) -> Result<()> {
         " ",
         node_view.extract(args[5]), // end z
         " ",
-        node_view.extract(id_with_data.id), // block
+        id, // block
     ]);
 
     if !id_with_data.data.is_empty() {
-        translate_block_data(node_view, &id_with_data.data)?;
+        translate_block_data(node_view, &id_with_data.data, id.contains("_wall"))?;
     }
 
     node_view.extend([" ", node_view.extract(args[6])]); // mode
@@ -995,6 +997,7 @@ fn translate_scb_players(node_view: &mut NodeView) -> Result<()> {
 
 fn translate_setblock(node_view: &mut NodeView) -> Result<()> {
     let (args, id_with_data) = node_view.as_id_with_data()?;
+    let id = node_view.extract(id_with_data.id);
 
     node_view.extend([
         "setblock ",
@@ -1004,11 +1007,11 @@ fn translate_setblock(node_view: &mut NodeView) -> Result<()> {
         " ",
         node_view.extract(args[2]), // z
         " ",
-        node_view.extract(id_with_data.id), // block
+        id, // block
     ]);
 
     if !id_with_data.data.is_empty() {
-        translate_block_data(node_view, &id_with_data.data)?;
+        translate_block_data(node_view, &id_with_data.data, id.contains("_wall"))?;
     }
 
     node_view.extend([" ", node_view.extract(args[3])]); // mode

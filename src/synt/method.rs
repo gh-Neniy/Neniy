@@ -276,7 +276,7 @@ sorted_fns!(
             1,
             "mode",
             NAME,
-            make_check_kind!(TokenKind::Keep | TokenKind::Replace),
+            make_check_kind!(TokenKind::Keep | TokenKind::Replace | TokenKind::Destroy),
         )?;
         args.push(state[0].base);
 
