@@ -2,7 +2,7 @@ use super::{aux::NodeView, data};
 use crate::{
     ErrorKind::Translation,
     NeniyError, Result,
-    lexic::token::TokenKind,
+    lexic::token::{Token, TokenKind},
     synt::{
         aux::ListUnit,
         selector::{Selector, SelectorUnit, SelectorValue},
@@ -18,17 +18,17 @@ fn translate_list(node_view: &mut NodeView, list: &[ListUnit]) {
     let first_unit = iter.next().unwrap();
 
     node_view.extend([
-        node_view.extract(first_unit.key),
+        node_view.extract(first_unit.key.base),
         "=",
-        node_view.extract(first_unit.value),
+        node_view.extract(first_unit.value.base),
     ]);
 
     for unit in iter {
         node_view.push(',');
         node_view.extend([
-            node_view.extract(unit.key),
+            node_view.extract(unit.key.base),
             "=",
-            node_view.extract(unit.value),
+            node_view.extract(unit.value.base),
         ]);
     }
 }
@@ -42,11 +42,11 @@ fn translate_selector_unit(node_view: &mut NodeView, unit: &SelectorUnit) -> Res
                 key = "gamemode";
             }
 
-            node_view.extend([key, "=", node_view.extract(*value)]);
+            node_view.extend([key, "=", node_view.extract(value.base)]);
         }
         SelectorValue::Data(data) => {
             node_view.push_str("nbt={");
-            data::translate_entity_data(node_view, data, false)?;
+            data::translate_entity_data(node_view, Token::new_empty(), data)?;
             node_view.push('}');
         }
         SelectorValue::List(list) => {

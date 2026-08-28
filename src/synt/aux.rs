@@ -6,7 +6,7 @@ use std::{
 use crate::{
     ErrorKind::Syntax,
     NeniyError, Result,
-    lexic::token::{BaseToken, Index, Token, TokenCategory, TokenKind},
+    lexic::token::{Index, Token, TokenCategory, TokenKind},
 };
 
 #[derive(Debug)]
@@ -63,18 +63,18 @@ impl<'a> ops::Index<i16> for State<'a> {
 
 #[derive(Debug)]
 pub struct ListUnit {
-    pub key: BaseToken,
-    pub value: BaseToken,
+    pub key: Token,
+    pub value: Token,
 }
 
 pub type List = Vec<ListUnit>;
 
-pub fn capture_range(state: &mut State) -> Result<BaseToken> {
-    let mut range = state[0].base;
+pub fn capture_range(state: &mut State) -> Result<Token> {
+    let mut range = state[0];
 
     if valid_numeric(state[0]) {
         if state.exceed(1) || state[1].kind != TokenKind::Range {
-            return Ok(state[0].base);
+            return Ok(state[0]);
         }
 
         if !consecutive(state[0], state[1]) {
@@ -95,7 +95,7 @@ pub fn capture_range(state: &mut State) -> Result<BaseToken> {
         *state += 1; // on ".." token
     }
 
-    range.end = capture_range_impl(state)?;
+    range.base.end = capture_range_impl(state)?;
     Ok(range)
 }
 
@@ -256,8 +256,8 @@ pub fn capture_list(state: &mut State) -> Result<List> {
 
         if valid_numeric(state[0]) {
             list.push(ListUnit {
-                key: state[0].base,
-                value: BaseToken::new_empty(),
+                key: state[0],
+                value: Token::new_empty(),
             });
 
             *state += 1;
@@ -320,8 +320,8 @@ fn capture_range_impl(state: &mut State) -> Result<Index> {
 fn capture_list_item(state: &mut State) -> Result<ListUnit> {
     if state.exceed(1) || state[1].kind != TokenKind::EqualOperator {
         return Ok(ListUnit {
-            key: state[0].base,
-            value: BaseToken::new_empty(),
+            key: state[0],
+            value: Token::new_empty(),
         });
     }
 
@@ -329,13 +329,13 @@ fn capture_list_item(state: &mut State) -> Result<ListUnit> {
 
     if valid_range(state[0]) {
         return Ok(ListUnit {
-            key: state[-2].base,
+            key: state[-2],
             value: capture_range(state)?,
         });
     }
 
     Ok(ListUnit {
-        key: state[-2].base,
-        value: state[0].base,
+        key: state[-2],
+        value: state[0],
     })
 }

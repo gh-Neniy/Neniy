@@ -1,6 +1,6 @@
 use sorted_code::sorted_enum;
 
-use crate::lexic::token::BaseToken;
+use crate::lexic::token::{BaseToken, Token};
 
 use super::{aux::List, data::IdWithDataPtr, selector::Selector, text::Text};
 
@@ -70,7 +70,7 @@ pub enum Command {
 pub enum Node {
     // could not move args and command out in a separate struct because of enum's padding
     Base {
-        args: Vec<BaseToken>,
+        args: Vec<Token>,
         command: Command,
     }, // 25 bytes
 
@@ -83,23 +83,31 @@ pub enum Node {
     }, // 33 bytes
 
     IdWithData {
-        args: Vec<BaseToken>,
+        args: Vec<Token>,
         command: Command,
         id_with_data_ptr: IdWithDataPtr,
     }, // 33 bytes
 
     Selector {
-        args: Vec<BaseToken>,
+        args: Vec<Token>,
         command: Command,
         selector: Selector,
     }, // 57 bytes
 
     SelectorIdWithData(Box<SelectorIdWithDataNode>), // 8 bytes (instead of 65)
-    SelectorList(Box<SelectorListNode>),             // 8 bytes (instead of 81)
-    SelectorText(Box<SelectorTextNode>),             // 8 bytes (instead of 81)
+
+    SelectorIndexing {
+        args: Vec<Token>,
+        command: Command,
+        selector: Selector,
+        indexing: BaseToken,
+    }, // 61 bytes
+
+    SelectorList(Box<SelectorListNode>), // 8 bytes (instead of 85)
+    SelectorText(Box<SelectorTextNode>), // 8 bytes (instead of 81)
 
     Text {
-        args: Vec<BaseToken>,
+        args: Vec<Token>,
         command: Command,
         text: Text,
     }, // 49 bytes
@@ -107,7 +115,7 @@ pub enum Node {
 
 #[derive(Debug)]
 pub struct DoubleSelectorNode {
-    pub args: Vec<BaseToken>,
+    pub args: Vec<Token>,
     pub command: Command,
     pub selector1: Selector,
     pub selector2: Selector,
@@ -115,7 +123,7 @@ pub struct DoubleSelectorNode {
 
 #[derive(Debug)]
 pub struct SelectorIdWithDataNode {
-    pub args: Vec<BaseToken>,
+    pub args: Vec<Token>,
     pub command: Command,
     pub selector: Selector,
     pub id_with_data_ptr: IdWithDataPtr,
@@ -123,15 +131,16 @@ pub struct SelectorIdWithDataNode {
 
 #[derive(Debug)]
 pub struct SelectorListNode {
-    pub args: Vec<BaseToken>,
+    pub args: Vec<Token>,
     pub command: Command,
     pub selector: Selector,
     pub list: List,
+    pub indexing: BaseToken,
 }
 
 #[derive(Debug)]
 pub struct SelectorTextNode {
-    pub args: Vec<BaseToken>,
+    pub args: Vec<Token>,
     pub command: Command,
     pub selector: Selector,
     pub text: Text,

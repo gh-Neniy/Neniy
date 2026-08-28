@@ -77,7 +77,7 @@ sorted_fns!(
         let selector = capture_entity(state, &mut args, NAME, false)?;
 
         aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -94,10 +94,10 @@ sorted_fns!(
         let selector = capture_entity(state, &mut args, NAME, false)?;
 
         aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_token(state, 1, "value", NAME, aux::valid_numeric)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -133,7 +133,7 @@ sorted_fns!(
 
         if !state.exceed(1) && state[1].kind == TokenKind::Numeric {
             *state += 1;
-            args.push(state[0].base);
+            args.push(state[0]);
         }
 
         Ok(Node::SelectorIdWithData(Box::new(
@@ -161,11 +161,11 @@ sorted_fns!(
             NAME,
             make_check_kind!(TokenKind::Replace | TokenKind::Masked),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         if !state.exceed(1) && state[1].kind == TokenKind::Move {
             *state += 1;
-            args.push(state[0].base);
+            args.push(state[0]);
         }
 
         Ok(Node::Base {
@@ -183,7 +183,7 @@ sorted_fns!(
         let selector = capture_entity(state, &mut args, NAME, false)?;
 
         aux::check_token(state, 1, "damage amount", NAME, aux::valid_numeric)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -278,11 +278,11 @@ sorted_fns!(
             NAME,
             make_check_kind!(TokenKind::Keep | TokenKind::Replace | TokenKind::Destroy),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         if !state.exceed(1) && state[1].kind == TokenKind::Id {
             *state += 1;
-            args.push(state[0].base);
+            args.push(state[0]);
         }
 
         Ok(Node::IdWithData {
@@ -298,11 +298,11 @@ sorted_fns!(
         let mut args = Vec::with_capacity(2);
 
         aux::check_token(state, 1, "name", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         if !state.exceed(1) && state[1].kind == TokenKind::Id {
             *state += 1;
-            args.push(state[0].base);
+            args.push(state[0]);
         }
 
         Ok(Node::Base {
@@ -318,7 +318,7 @@ sorted_fns!(
         aux::check_token(state, 1, "value", NAME, aux::valid_value)?;
 
         Ok(Node::Base {
-            args: vec![state[-1].base, state[0].base],
+            args: vec![state[-1], state[0]],
             command: Command::Gamerule,
         })
     }
@@ -336,7 +336,7 @@ sorted_fns!(
 
         if !state.exceed(1) && state[1].kind == TokenKind::Numeric {
             *state += 1;
-            args.push(state[0].base);
+            args.push(state[0]);
         }
 
         Ok(Node::SelectorIdWithData(Box::new(
@@ -360,9 +360,9 @@ sorted_fns!(
             1,
             "mode",
             NAME,
-            make_check_kind!(Adventure | Creative | Spectator | Survival),
+            make_check_kind!(Adventure | Spectator),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_presence(state, 1, "player", NAME)?;
         let selector = capture_entity(state, &mut args, NAME, false)?;
@@ -402,7 +402,7 @@ sorted_fns!(
         let mut args = Vec::with_capacity(7);
 
         aux::check_token(state, 1, "sound name", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_presence(state, 1, "entity", NAME)?;
         let selector = capture_entity(state, &mut args, NAME, false)?;
@@ -411,10 +411,10 @@ sorted_fns!(
         capture_coords(state, &mut args, 3, NAME)?;
 
         aux::check_token(state, 1, "volume", NAME, aux::valid_numeric)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_token(state, 1, "pitch", NAME, aux::valid_numeric)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -441,7 +441,7 @@ sorted_fns!(
             NAME,
             make_check_kind!(TokenKind::Normal | TokenKind::Force),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::IdWithData {
             args,
@@ -494,7 +494,7 @@ sorted_fns!(
             NAME,
             make_check_kind!(TokenKind::Destroy | TokenKind::Keep | TokenKind::Replace),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::IdWithData {
             args,
@@ -563,7 +563,7 @@ sorted_fns!(
         let selector = capture_entity(state, &mut args, NAME, false)?;
 
         aux::check_token(state, 1, "sound name", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -587,10 +587,10 @@ sorted_fns!(
             NAME,
             make_check_kind!(TokenKind::Add | TokenKind::Remove),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_token(state, 1, "tag name", NAME, aux::valid_value)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -639,7 +639,7 @@ sorted_fns!(
         aux::check_token(state, 1, "value", NAME, aux::valid_value)?;
 
         Ok(Node::Base {
-            args: vec![state[-1].base, state[0].base],
+            args: vec![state[-1], state[0]],
             command: Command::Time,
         })
     }
@@ -658,7 +658,7 @@ sorted_fns!(
             NAME,
             make_check_kind!(TokenKind::Subtitle | TokenKind::Title),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_token(state, 1, "text", NAME, aux::valid_text)?;
         let text = text::parse_text(state)?;
@@ -699,9 +699,9 @@ sorted_fns!(
     }
 
     #[sort_start]
-    fn capture_coordinate(state: &mut State) -> Result<BaseToken> {
+    fn capture_coordinate(state: &mut State) -> Result<Token> {
         if aux::valid_numeric(state[0]) {
-            return Ok(state[0].base);
+            return Ok(state[0]);
         }
 
         if matches!(state[0].kind, TokenKind::Tilda | TokenKind::Caret) {
@@ -709,15 +709,15 @@ sorted_fns!(
                 || !aux::valid_numeric(state[1])
                 || !aux::consecutive(state[0], state[1])
             {
-                return Ok(state[0].base);
+                return Ok(state[0]);
             }
+
+            let mut coordinate = state[0];
+            coordinate.base.end = state[1].base.end;
 
             *state += 1;
 
-            return Ok(BaseToken {
-                start: state[-1].base.start,
-                end: state[0].base.end,
-            });
+            return Ok(coordinate);
         }
 
         Err(NeniyError::new(
@@ -732,7 +732,7 @@ sorted_fns!(
     // state[0] on first coordinate
     fn capture_coords(
         state: &mut State,
-        args: &mut Vec<BaseToken>,
+        args: &mut Vec<Token>,
         count: Index,
         name: &str,
     ) -> Result<()> {
@@ -746,10 +746,10 @@ sorted_fns!(
         Ok(())
     }
 
-    fn capture_data_field(state: &mut State, args: &mut Vec<BaseToken>) -> Result<()> {
-        let mut data_field = state[0].base;
+    fn capture_data_field(state: &mut State, args: &mut Vec<Token>) -> Result<Option<BaseToken>> {
+        args.push(state[0]);
 
-        while !state.exceed(1) && state[1].kind == TokenKind::OpeningSquareBrace {
+        if !state.exceed(1) && state[1].kind == TokenKind::OpeningSquareBrace {
             if state.exceed(3) {
                 return Err(NeniyError::new(
                     "indexing not found for data-field".to_string(),
@@ -778,22 +778,24 @@ sorted_fns!(
                 ));
             }
 
-            data_field.end = state[3].base.end;
             *state += 3;
+            return Ok(Some(BaseToken {
+                start: state[-2].base.start,
+                end: state[0].base.end,
+            }));
         }
 
-        args.push(data_field);
-        Ok(())
+        Ok(None)
     }
 
     fn capture_entity(
         state: &mut State,
-        args: &mut Vec<BaseToken>,
+        args: &mut Vec<Token>,
         name: &str,
         look_ahead: bool,
     ) -> Result<Selector> {
         if aux::valid_id(state[0]) {
-            args.push(state[0].base);
+            args.push(state[0]);
             Ok(Selector::new_empty())
         } else if state[0].category == TokenCategory::Selector {
             selector::parse_selector(state, look_ahead)
@@ -810,7 +812,7 @@ sorted_fns!(
 
     fn capture_entity_or_coords(
         state: &mut State,
-        args: &mut Vec<BaseToken>,
+        args: &mut Vec<Token>,
         name: &str,
     ) -> Result<Selector> {
         if aux::valid_coordinate(state[0]) {
@@ -860,7 +862,7 @@ sorted_fns!(
         aux::check_token(state, 1, "argument", name, valid_token)?;
 
         Ok(Node::Base {
-            args: vec![state[0].base],
+            args: vec![state[0]],
             command,
         })
     }
@@ -873,7 +875,7 @@ sorted_fns!(
         aux::check_token(state, 1, "text", NAME, aux::valid_text)?;
 
         Ok(Node::Text {
-            args: vec![state[-1].base],
+            args: vec![state[-1]],
             command: Command::BossbarAdd,
             text: text::parse_text(state)?,
         })
@@ -895,7 +897,7 @@ sorted_fns!(
         let mut args = Vec::with_capacity(3);
 
         aux::check_token(state, 1, "name", NAME, aux::valid_value)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_token(
             state,
@@ -904,7 +906,7 @@ sorted_fns!(
             NAME,
             make_check_kind!(Color | Players | Max),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         let mut selector = Selector::new_empty();
 
@@ -918,7 +920,7 @@ sorted_fns!(
                 aux::check_token(state, 1, "color", NAME, aux::valid_id)?;
             };
 
-            args.push(state[0].base);
+            args.push(state[0]);
         }
 
         Ok(Node::Selector {
@@ -929,19 +931,20 @@ sorted_fns!(
     }
 
     fn data_get_parse(state: &mut State) -> Result<Node> {
-        let (args, selector) = data_shared_parse(state, "data get", 2)?;
+        let (args, selector, indexing) = data_shared_parse(state, "data get", 2)?;
 
-        Ok(Node::Selector {
+        Ok(Node::SelectorIndexing {
             args,
             command: Command::DataGet,
             selector,
+            indexing,
         })
     }
 
     fn data_modify_parse(state: &mut State) -> Result<Node> {
         const NAME: &str = "data modify";
 
-        let (mut args, selector) = data_shared_parse(state, NAME, 4)?;
+        let (mut args, selector, indexing) = data_shared_parse(state, NAME, 4)?;
 
         aux::check_token(
             state,
@@ -950,13 +953,13 @@ sorted_fns!(
             NAME,
             make_check_kind!(TokenKind::Add | TokenKind::Set),
         )?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_presence(state, 1, "value", NAME)?;
         let mut list = List::new();
 
         if aux::valid_value(state[0]) {
-            args.push(state[0].base);
+            args.push(state[0]);
         } else if state[0].kind == TokenKind::OpeningSquareBrace {
             list = aux::capture_list(state)?;
         } else {
@@ -974,6 +977,7 @@ sorted_fns!(
             command: Command::DataModify,
             selector,
             list,
+            indexing,
         })))
     }
 
@@ -982,16 +986,16 @@ sorted_fns!(
         state: &mut State,
         name: &str,
         capacity: usize,
-    ) -> Result<(Vec<BaseToken>, Selector)> {
+    ) -> Result<(Vec<Token>, Selector, BaseToken)> {
         let mut args = Vec::with_capacity(capacity);
 
         aux::check_presence(state, 1, "entity", name)?;
         let selector = capture_entity(state, &mut args, name, false)?;
 
         aux::check_token(state, 1, "data-field", name, aux::valid_id)?;
-        capture_data_field(state, &mut args)?;
+        let indexing = capture_data_field(state, &mut args)?;
 
-        Ok((args, selector))
+        Ok((args, selector, indexing.unwrap_or(BaseToken::new_empty())))
     }
 
     fn effect_clear_parse(state: &mut State) -> Result<Node> {
@@ -1010,10 +1014,10 @@ sorted_fns!(
         let (mut args, selector) = effect_shared_parse(state, NAME, 5)?;
 
         aux::check_token(state, 1, "duration", NAME, aux::valid_value)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_token(state, 1, "amplifier", NAME, aux::valid_value)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -1026,15 +1030,15 @@ sorted_fns!(
         state: &mut State,
         name: &str,
         capacity: usize,
-    ) -> Result<(Vec<BaseToken>, Selector)> {
+    ) -> Result<(Vec<Token>, Selector)> {
         let mut args = Vec::with_capacity(capacity);
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_presence(state, 1, "entity", name)?;
         let selector = capture_entity(state, &mut args, name, false)?;
 
         aux::check_token(state, 1, "effect name", name, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok((args, selector))
     }
@@ -1043,7 +1047,7 @@ sorted_fns!(
         aux::check_token(state, 1, "argument", "ex align", aux::valid_id)?;
 
         Ok(Node::Base {
-            args: vec![state[0].base],
+            args: vec![state[0]],
             command: Command::ExAlign,
         })
     }
@@ -1058,7 +1062,7 @@ sorted_fns!(
         )?;
 
         Ok(Node::Base {
-            args: vec![state[0].base],
+            args: vec![state[0]],
             command: Command::ExAnchored,
         })
     }
@@ -1072,7 +1076,7 @@ sorted_fns!(
         };
 
         let mut args = Vec::with_capacity(4);
-        args.push(state[-1].base);
+        args.push(state[-1]);
 
         aux::check_presence(state, 1, "first coordinate", name)?;
         capture_coords(state, &mut args, 3, name)?;
@@ -1125,7 +1129,7 @@ sorted_fns!(
             Command::ExAs => "ex as",
             Command::ExAt => "ex at",
             Command::ExEnt => {
-                args.push(state[-1].base);
+                args.push(state[-1]);
 
                 if is_if { "ex if ent" } else { "ex unless ent" }
             }
@@ -1180,7 +1184,7 @@ sorted_fns!(
         };
 
         let mut args = Vec::with_capacity(3);
-        args.push(state[-2].base);
+        args.push(state[-2]);
 
         ex_items_shared_parse(state, &mut args, name)?;
 
@@ -1198,7 +1202,7 @@ sorted_fns!(
         };
 
         let mut args = Vec::with_capacity(4);
-        args.push(state[-2].base);
+        args.push(state[-2]);
 
         aux::check_presence(state, 1, "entity", name)?;
         let selector = capture_entity(state, &mut args, name, false)?;
@@ -1212,16 +1216,12 @@ sorted_fns!(
         })
     }
 
-    fn ex_items_shared_parse(
-        state: &mut State,
-        args: &mut Vec<BaseToken>,
-        name: &str,
-    ) -> Result<()> {
+    fn ex_items_shared_parse(state: &mut State, args: &mut Vec<Token>, name: &str) -> Result<()> {
         aux::check_token(state, 1, "container", name, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_token(state, 1, "item name", name, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(())
     }
@@ -1255,23 +1255,23 @@ sorted_fns!(
         };
 
         let mut args = Vec::with_capacity(5);
-        args.push(state[-1].base);
+        args.push(state[-1]);
 
         aux::check_presence(state, 1, "entity", name)?;
         let selector = capture_entity(state, &mut args, name, false)?;
 
         aux::check_token(state, 1, "objective", name, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_presence(state, 1, "range or operator", name)?;
 
         if aux::valid_range(state[0]) {
             args.push(aux::capture_range(state)?);
         } else if aux::valid_operator(state[0]) {
-            args.push(state[0].base);
+            args.push(state[0]);
 
             aux::check_token(state, 1, "second entity", name, aux::valid_id)?;
-            args.push(state[0].base);
+            args.push(state[0]);
         } else {
             return Err(NeniyError::new(
                 [
@@ -1317,10 +1317,10 @@ sorted_fns!(
         capture_data_field(state, &mut args)?;
 
         aux::check_token(state, 1, "data type", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_token(state, 1, "multiplier", NAME, aux::valid_numeric)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -1353,7 +1353,7 @@ sorted_fns!(
         let selector = capture_entity(state, &mut args, NAME, false)?;
 
         aux::check_token(state, 1, "objective", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -1371,12 +1371,7 @@ sorted_fns!(
         aux::check_token(state, 1, "multiplier", NAME, aux::valid_numeric)?;
 
         Ok(Node::Base {
-            args: vec![
-                state[-3].base,
-                state[-2].base,
-                state[-1].base,
-                state[0].base,
-            ],
+            args: vec![state[-3], state[-2], state[-1], state[0]],
             command: Command::ExStoreStorage,
         })
     }
@@ -1389,7 +1384,7 @@ sorted_fns!(
         let selector = capture_entity(state, &mut args, NAME, false)?;
 
         aux::check_token(state, 1, "objective", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         Ok(Node::Selector {
             args,
@@ -1405,7 +1400,7 @@ sorted_fns!(
         aux::check_token(state, 1, "objective", NAME, aux::valid_id)?;
         aux::check_token(state, 1, "objective type", NAME, aux::valid_id)?;
 
-        let args = vec![state[-1].base, state[0].base];
+        let args = vec![state[-1], state[0]];
         let mut text = Text::new();
 
         if !state.exceed(1) && aux::valid_text(state[1]) {
@@ -1443,7 +1438,7 @@ sorted_fns!(
         aux::check_token(state, 1, "objective", NAME, aux::valid_id)?;
 
         Ok(Node::Base {
-            args: vec![state[-1].base, state[0].base],
+            args: vec![state[-1], state[0]],
             command: Command::ScbObjSet,
         })
     }
@@ -1464,26 +1459,26 @@ sorted_fns!(
         )?;
 
         let mode = state[0].kind;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_presence(state, 1, "entity", NAME)?;
         let selector = capture_entity(state, &mut args, NAME, false)?;
 
         aux::check_token(state, 1, "objective", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         if mode == Opr {
             const NAME: &str = "scb players opr";
 
             aux::check_token(state, 1, "operator", NAME, aux::valid_operator)?;
-            args.push(state[0].base);
+            args.push(state[0]);
 
             // second entity is never being selector
             aux::check_token(state, 1, "second entity", NAME, aux::valid_id)?;
-            args.push(state[0].base);
+            args.push(state[0]);
         } else if matches!(mode, Add | Remove | Set) {
             aux::check_token(state, 1, "value", NAME, aux::valid_numeric)?;
-            args.push(state[0].base);
+            args.push(state[0]);
         }
 
         Ok(Node::Selector {
@@ -1502,7 +1497,7 @@ sorted_fns!(
         let mut args = Vec::with_capacity(2);
 
         aux::check_token(state, 1, "team name", NAME, aux::valid_id)?;
-        args.push(state[0].base);
+        args.push(state[0]);
 
         aux::check_presence(state, 1, "entity", NAME)?;
         let selector = capture_entity(state, &mut args, NAME, false)?;
@@ -1522,7 +1517,7 @@ sorted_fns!(
         aux::check_token(state, 1, "value", NAME, aux::valid_id)?;
 
         Ok(Node::Base {
-            args: vec![state[-2].base, state[-1].base, state[0].base],
+            args: vec![state[-2], state[-1], state[0]],
             command: Command::TeamModify,
         })
     }

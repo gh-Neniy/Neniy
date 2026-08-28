@@ -7,7 +7,7 @@ use super::{
 use crate::{
     ErrorKind::Syntax,
     NeniyError, Result,
-    lexic::token::{BaseToken, Token, TokenKind},
+    lexic::token::{Token, TokenKind},
 };
 
 #[sorted_enum]
@@ -15,7 +15,7 @@ use crate::{
 pub enum SelectorValue {
     Data(DataPtr),
     List(List),
-    Value(BaseToken),
+    Value(Token),
 }
 
 #[derive(Debug)]
@@ -92,10 +92,7 @@ pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
 fn capture_id_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "id selector unit", aux::valid_id)?;
 
-    Ok(SelectorUnit::new(
-        state[-2],
-        SelectorValue::Value(state[0].base),
-    ))
+    Ok(SelectorUnit::new(state[-2], SelectorValue::Value(state[0])))
 }
 
 fn capture_range_item(state: &mut State) -> Result<SelectorUnit> {
@@ -119,19 +116,13 @@ fn capture_data_item(state: &mut State) -> Result<SelectorUnit> {
 fn capture_value_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "value selector unit", aux::valid_value)?;
 
-    Ok(SelectorUnit::new(
-        state[-2],
-        SelectorValue::Value(state[0].base),
-    ))
+    Ok(SelectorUnit::new(state[-2], SelectorValue::Value(state[0])))
 }
 
 fn capture_numeric_item(state: &mut State) -> Result<SelectorUnit> {
     aux::unit_check(state, "numeric selector unit", aux::valid_numeric)?;
 
-    Ok(SelectorUnit::new(
-        state[-2],
-        SelectorValue::Value(state[0].base),
-    ))
+    Ok(SelectorUnit::new(state[-2], SelectorValue::Value(state[0])))
 }
 
 fn capture_list_item(state: &mut State) -> Result<SelectorUnit> {
@@ -148,7 +139,7 @@ fn capture_item(state: &mut State) -> Result<SelectorUnit> {
 
     sorted_match!(match state[0].kind {
         Data => capture_data_item(state),
-        Distance | XRotation | YRotation => capture_range_item(state),
+        Distance => capture_range_item(state),
         Dx | Dy | Dz | Limit => capture_numeric_item(state),
         Gm | Sort | Team | Type => capture_id_item(state),
         Score => capture_list_item(state),

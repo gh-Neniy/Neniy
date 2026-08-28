@@ -7,7 +7,7 @@ use super::{
 use crate::{
     ErrorKind::{Logic, Syntax},
     NeniyError, Result,
-    lexic::token::{BaseToken, Token, TokenKind},
+    lexic::token::{Token, TokenKind},
 };
 
 #[derive(Debug)]
@@ -27,7 +27,7 @@ pub type Data = Vec<DataUnit>;
 #[derive(Debug)]
 pub struct IdWithData {
     pub data: Data,
-    pub id: BaseToken,
+    pub id: Token,
 }
 
 pub type DataPtr = Box<Data>;
@@ -36,7 +36,7 @@ pub type IdWithDataPtr = Box<IdWithData>;
 #[derive(Debug)]
 pub enum DataValue {
     Nothing,
-    Id(BaseToken),
+    Id(Token),
     Data(DataPtr),
     IdWithData(IdWithDataPtr),
     List(List),
@@ -61,7 +61,7 @@ impl DataValue {
         }
     }
 
-    pub fn as_id(&self) -> Result<BaseToken> {
+    pub fn as_id(&self) -> Result<Token> {
         if let DataValue::Id(id) = self {
             Ok(*id)
         } else {
@@ -166,7 +166,7 @@ pub fn parse_data(state: &mut State) -> Result<DataPtr> {
 
 // state[0] - id
 pub fn parse_id_with_data(state: &mut State) -> Result<IdWithDataPtr> {
-    let id = state[0].base;
+    let id = state[0];
 
     if state.exceed(1) || !aux::valid_data(state[1]) {
         return Ok(IdWithDataPtr::new(IdWithData {
@@ -202,7 +202,7 @@ fn capture_text_item(state: &mut State) -> Result<DataUnit> {
 fn capture_numeric_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "numeric unit", aux::valid_numeric)?;
 
-    Ok(DataUnit::new(state[-2], DataValue::Id(state[0].base)))
+    Ok(DataUnit::new(state[-2], DataValue::Id(state[0])))
 }
 
 // state[0] == '['
@@ -274,13 +274,13 @@ fn capture_id_with_data_item(state: &mut State) -> Result<DataUnit> {
 fn capture_id_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "id unit", aux::valid_id)?;
 
-    Ok(DataUnit::new(state[-2], DataValue::Id(state[0].base)))
+    Ok(DataUnit::new(state[-2], DataValue::Id(state[0])))
 }
 
 fn capture_value_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "value unit", aux::valid_value)?;
 
-    Ok(DataUnit::new(state[-2], DataValue::Id(state[0].base)))
+    Ok(DataUnit::new(state[-2], DataValue::Id(state[0])))
 }
 
 fn capture_list_type_item(state: &mut State) -> Result<DataUnit> {
@@ -296,7 +296,7 @@ fn capture_numeric_or_list_item(state: &mut State) -> Result<DataUnit> {
     aux::unit_check(state, "numeric or list unit", aux::valid_numeric_or_list)?;
 
     if aux::valid_numeric(state[0]) {
-        return Ok(DataUnit::new(state[-2], DataValue::Id(state[0].base)));
+        return Ok(DataUnit::new(state[-2], DataValue::Id(state[0])));
     }
 
     Ok(DataUnit::new(
@@ -316,11 +316,11 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
         | RightHandChance | Size | Stability | Stack | TpTime | Width => {
             capture_numeric_item(state)
         }
-        Axis | Billboard | CanBreak | CanPlaceOn | Effect | Facing | Half | LootTable | Potion
+        Axis | Billboard | CanBreak | CanPlaceOn | Effect | Facing | LootTable | Potion
         | Profession | Type => capture_id_item(state),
-        CanGrab | Crit | East | Hide | InGround | Interaction | Invisible | Invulnerable | Lit
-        | Marker | NameVisible | NoAI | NoDespawn | NoGravity | NoTrade | North | Open
-        | Powered | Shine | Silent | South | Unbreakable | West => Ok(capture_mono_item(state)),
+        Crit | East | Hide | InGround | Interaction | Invisible | Invulnerable | Lit | Marker
+        | NameVisible | NoAI | NoDespawn | NoGravity | NoTrade | North | Open | Powered | Shine
+        | Silent | South | Unbreakable | West => Ok(capture_mono_item(state)),
         Data => capture_data_item(state),
         Enchantments | FromColor | Rotation | ToColor => capture_list_type_item(state),
         Lore | Sign => capture_lore_item(state),

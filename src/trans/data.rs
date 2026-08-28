@@ -4,13 +4,14 @@ use sorted_code::sorted_match;
 
 use super::{
     aux::{self, NodeView},
-    text,
+    id, text,
 };
 use crate::{
     ErrorKind::Translation,
     NeniyError, Result,
-    lexic::token::{BaseToken, Index, Token, TokenKind},
+    lexic::token::{Index, Token, TokenKind},
     synt::{
+        self,
         aux::ListUnit,
         data::{DataUnit, DataValue, IdWithData},
         text::Text,
@@ -20,11 +21,11 @@ use crate::{
 #[derive(Debug)]
 struct SimpleUnit {
     key: Token,
-    value: BaseToken,
+    value: Token,
 }
 
 impl SimpleUnit {
-    fn new(key: Token, value: BaseToken) -> Self {
+    fn new(key: Token, value: Token) -> Self {
         SimpleUnit { key, value }
     }
 }
@@ -39,11 +40,30 @@ struct Equipment<'a> {
 struct Storage<'a> {
     attributes: Vec<SimpleUnit>,
     equipment: Vec<Equipment<'a>>,
-    tags: Vec<BaseToken>,
+    tags: Vec<Token>,
     chances: Vec<SimpleUnit>,
 }
 
-fn translate_enchantments(node_view: &mut NodeView, list: &[ListUnit]) {
+fn extract_numeric<'a>(node_view: &NodeView<'a>, value: Token) -> Result<&'a str> {
+    if !synt::aux::valid_numeric(value) {
+        return Err(NeniyError::new(
+            [
+                "value \"",
+                node_view.extract(value.base),
+                "\" is not a valid numeric",
+            ]
+            .concat(),
+            Translation,
+            node_view.source_code,
+            value.base.start,
+            value.base.end,
+        ));
+    }
+
+    Ok(node_view.extract(value.base))
+}
+
+fn translate_enchantments(node_view: &mut NodeView, list: &[ListUnit]) -> Result<()> {
     if list.is_empty() {
         node_view.push_str("{}");
     }
@@ -53,49 +73,31 @@ fn translate_enchantments(node_view: &mut NodeView, list: &[ListUnit]) {
 
     node_view.extend([
         "{\"minecraft:",
-        node_view.extract(first_unit.key),
+        id::enchantment_match(node_view, first_unit.key)?,
         "\":",
-        node_view.extract(first_unit.value),
+        extract_numeric(node_view, first_unit.value)?,
     ]);
 
     for unit in iter {
         node_view.push(',');
         node_view.extend([
             "\"minecraft:",
-            node_view.extract(unit.key),
+            id::enchantment_match(node_view, unit.key)?,
             "\":",
-            node_view.extract(unit.value),
+            extract_numeric(node_view, unit.value)?,
         ]);
     }
 
     node_view.push('}');
+    Ok(())
 }
 
 fn translate_attribute_unit(node_view: &mut NodeView, unit: &SimpleUnit) -> Result<()> {
     node_view.extend([
         "{id:\"minecraft:",
-        sorted_match!(match unit.key.kind {
-            TokenKind::AttackDamage => "attack_damage",
-            TokenKind::AttackSpeed => "attack_speed",
-            TokenKind::Health => "max_health",
-            TokenKind::Stability => "knockback_resistance",
-
-            _ =>
-                return Err(NeniyError::new(
-                    [
-                        "unknown attribute \"",
-                        node_view.extract(unit.key.base),
-                        "\" (internal)",
-                    ]
-                    .concat(),
-                    Translation,
-                    node_view.source_code,
-                    unit.key.base.start,
-                    unit.key.base.end,
-                )),
-        }),
+        id::attribute_match(node_view, unit.key)?,
         "\",base:",
-        node_view.extract(unit.value),
+        node_view.extract(unit.value.base),
         "}",
     ]);
 
@@ -148,7 +150,7 @@ fn translate_equipment_unit(node_view: &mut NodeView, unit: &Equipment) -> Resul
             }
         }),
         ":{id:\"minecraft:",
-        node_view.extract(unit.value.id),
+        id::item_match(node_view, unit.value.id)?,
         "\"",
     ]);
 
@@ -179,18 +181,19 @@ fn translate_equipment(node_view: &mut NodeView, equipment: &[Equipment]) -> Res
     Ok(())
 }
 
-fn translate_tags(node_view: &mut NodeView, tags: &[BaseToken]) {
+fn translate_tags(node_view: &mut NodeView, tags: &[Token]) -> Result<()> {
     node_view.push_str("Tags:[");
 
     let mut iter = tags.iter();
-    node_view.extend(["\"", node_view.extract(*iter.next().unwrap()), "\""]);
+    node_view.extend(["\"", node_view.extract(iter.next().unwrap().base), "\""]);
 
     for tag in iter {
         node_view.push(',');
-        node_view.extend(["\"", node_view.extract(*tag), "\""]);
+        node_view.extend(["\"", node_view.extract(tag.base), "\""]);
     }
 
     node_view.push(']');
+    Ok(())
 }
 
 fn translate_chance_unit(node_view: &mut NodeView, unit: &SimpleUnit) -> Result<()> {
@@ -218,7 +221,7 @@ fn translate_chance_unit(node_view: &mut NodeView, unit: &SimpleUnit) -> Result<
                 ));
             }
         }),
-        node_view.extract(unit.value),
+        node_view.extract(unit.value.base),
     ]);
 
     Ok(())
@@ -241,10 +244,10 @@ fn translate_chances(node_view: &mut NodeView, chances: &[SimpleUnit]) -> Result
 
 fn block_data_match<'a>(
     node_view: &mut NodeView,
+    block: Token,
     unit: &'a DataUnit,
     separator: &str,
     with_comma: bool,
-    is_wall: bool,
 ) -> Result<Option<(&'a [Text], Index, Index)>> {
     if unit.key.kind == TokenKind::Sign {
         let DataValue::Lore(msgs) = &unit.value else {
@@ -265,14 +268,18 @@ fn block_data_match<'a>(
         node_view.push(',');
     }
 
-    let value_for_sides = if is_wall { "\"low\"" } else { "\"true\"" };
+    let value_for_sides = if block.is_wall() {
+        "\"low\""
+    } else {
+        "\"true\""
+    };
 
     sorted_match!(match unit.key.kind {
         TokenKind::East => node_view.extend(["east", separator, value_for_sides]),
-        TokenKind::Lit => node_view.extend(["lit", separator, value_for_sides]),
+        TokenKind::Lit => node_view.extend(["lit", separator, "\"true\""]),
         TokenKind::North => node_view.extend(["north", separator, value_for_sides]),
-        TokenKind::Open => node_view.extend(["open", separator, value_for_sides]),
-        TokenKind::Powered => node_view.extend(["powered", separator, value_for_sides]),
+        TokenKind::Open => node_view.extend(["open", separator, "\"true\""]),
+        TokenKind::Powered => node_view.extend(["powered", separator, "\"true\""]),
         TokenKind::South => node_view.extend(["south", separator, value_for_sides]),
         TokenKind::West => node_view.extend(["west", separator, value_for_sides]),
 
@@ -293,15 +300,29 @@ fn block_data_match<'a>(
             };
 
             sorted_match!(match other_kind {
-                TokenKind::Axis => node_view.extend(["axis", separator, node_view.extract(value)]),
-                TokenKind::Facing =>
-                    node_view.extend(["facing", separator, "\"", node_view.extract(value), "\"",]),
-                TokenKind::Half =>
-                    node_view.extend(["half", separator, "\"", node_view.extract(value), "\"",]),
-                TokenKind::Level =>
-                    node_view.extend(["level", separator, "\"", node_view.extract(value), "\"",]),
-                TokenKind::Type =>
-                    node_view.extend(["type", separator, "\"", node_view.extract(value), "\"",]),
+                TokenKind::Axis =>
+                    node_view.extend(["axis", separator, node_view.extract(value.base)]),
+                TokenKind::Facing => node_view.extend([
+                    "facing",
+                    separator,
+                    "\"",
+                    node_view.extract(value.base),
+                    "\"",
+                ]),
+                TokenKind::Level => node_view.extend([
+                    "level",
+                    separator,
+                    "\"",
+                    node_view.extract(value.base),
+                    "\"",
+                ]),
+                TokenKind::Type => node_view.extend([
+                    "type",
+                    separator,
+                    "\"",
+                    id::entity_match(node_view, value)?,
+                    "\"",
+                ]),
 
                 _ => {
                     return Err(NeniyError::new(
@@ -325,7 +346,11 @@ fn block_data_match<'a>(
 }
 
 fn translate_item(node_view: &mut NodeView, id_with_data: &IdWithData) -> Result<()> {
-    node_view.extend(["{id:\"minecraft:", node_view.extract(id_with_data.id), "\""]);
+    node_view.extend([
+        "{id:\"minecraft:",
+        id::item_match(node_view, id_with_data.id)?,
+        "\"",
+    ]);
 
     if id_with_data.data.is_empty() {
         node_view.push('}');
@@ -338,27 +363,26 @@ fn translate_item(node_view: &mut NodeView, id_with_data: &IdWithData) -> Result
     Ok(())
 }
 
-fn translate_block_state(
-    node_view: &mut NodeView,
-    unit: &DataUnit,
-    is_falling_block: bool,
-) -> Result<()> {
+fn translate_block_state(node_view: &mut NodeView, block: Token, unit: &DataUnit) -> Result<()> {
     let id_with_data = unit.value.as_id_with_data()?;
-    let block_state = if is_falling_block {
+    let block_state = if block.is_falling_block() {
         "BlockState"
     } else {
         "block_state"
     };
 
-    let id = node_view.extract(id_with_data.id);
-
-    node_view.extend([block_state, ":{Name:\"minecraft:", id, "\""]);
+    node_view.extend([
+        block_state,
+        ":{Name:\"minecraft:",
+        id::block_match(node_view, id_with_data.id)?,
+        "\"",
+    ]);
 
     if id_with_data.data.is_empty() {
         node_view.push('}');
     } else {
         node_view.push_str(",Properties:{");
-        translate_block_data(node_view, &id_with_data.data, ":", id.contains("_wall"))?;
+        translate_block_data(node_view, block, &id_with_data.data, ":")?;
         node_view.push_str("}}");
     }
 
@@ -367,9 +391,9 @@ fn translate_block_state(
 
 fn entity_data_match<'a>(
     node_view: &mut NodeView,
+    entity: Token,
     unit: &'a DataUnit,
     storage: &mut Storage<'a>,
-    is_falling_block: bool,
     with_comma: bool,
 ) -> Result<bool> {
     use TokenKind::*;
@@ -410,30 +434,35 @@ fn entity_data_match<'a>(
                 Billboard => {
                     node_view.extend([
                         "billboard:\"",
-                        node_view.extract(unit.value.as_id()?),
+                        node_view.extract(unit.value.as_id()?.base),
                         "\"",
                     ]);
                 }
-                Block => translate_block_state(node_view, unit, is_falling_block)?,
-                CanGrab => node_view.push_str("CanPickUpLoot:1b"),
+                Block => translate_block_state(node_view, entity, unit)?,
                 Crit => node_view.push_str("crit:1b"),
                 Effect => node_view.extend([
                     "active_effects:[{id:\"",
-                    node_view.extract(unit.value.as_id()?),
+                    id::effect_match(node_view, unit.value.as_id()?)?,
                     "\",duration:-1,show_particles:0b}]"
                 ]),
                 Health => {
                     let value = unit.value.as_id()?;
+                    let mut attribute = unit.key;
+                    attribute.kind = TokenKind::MaxHealth;
 
                     storage.attributes.push(SimpleUnit {
-                        key: unit.key,
+                        key: attribute,
                         value,
                     });
-                    node_view.extend(["Health:", node_view.extract(value)]);
+                    node_view.extend(["Health:", node_view.extract(value.base)]);
                 }
-                Height => node_view.extend(["height:", node_view.extract(unit.value.as_id()?)]),
-                HurtTime =>
-                    node_view.extend(["HurtTime:", node_view.extract(unit.value.as_id()?), "s"]),
+                Height =>
+                    node_view.extend(["height:", node_view.extract(unit.value.as_id()?.base)]),
+                HurtTime => node_view.extend([
+                    "HurtTime:",
+                    node_view.extract(unit.value.as_id()?.base),
+                    "s"
+                ]),
                 InGround => node_view.push_str("inGround:1b"),
                 Interaction => node_view.push_str("interaction:{}"),
                 Invisible => node_view.push_str("Invisible:1b"),
@@ -444,7 +473,7 @@ fn entity_data_match<'a>(
                 }
                 LootTable => node_view.extend([
                     "DeathLootTable:\"",
-                    node_view.extract(unit.value.as_id()?),
+                    node_view.extract(unit.value.as_id()?.base),
                     "\""
                 ]),
                 Marker => node_view.push_str("Marker:1b"),
@@ -461,23 +490,23 @@ fn entity_data_match<'a>(
                     let id_with_data = unit.value.as_id_with_data()?;
 
                     node_view.extend([
-                        "Passengers:[{id:\"",
-                        node_view.extract(id_with_data.id),
+                        "Passengers:[{id:\"minecraft:",
+                        id::entity_match(node_view, id_with_data.id)?,
                         "\"",
                     ]);
 
                     if !id_with_data.data.is_empty() {
                         node_view.push(',');
-                        translate_entity_data(node_view, &id_with_data.data, false)?;
+                        translate_entity_data(node_view, entity, &id_with_data.data)?;
                     }
 
                     node_view.push_str("}]");
                 }
                 PickupDelay =>
-                    node_view.extend(["PickupDelay:", node_view.extract(unit.value.as_id()?)]),
+                    node_view.extend(["PickupDelay:", node_view.extract(unit.value.as_id()?.base)]),
                 Profession => node_view.extend([
                     "VillagerData:{profession:\"",
-                    node_view.extract(unit.value.as_id()?),
+                    node_view.extract(unit.value.as_id()?.base),
                     "\",level:2,type:\"plains\"}"
                 ]),
                 Rotation => {
@@ -495,14 +524,16 @@ fn entity_data_match<'a>(
                 }
                 Shine => node_view.push_str("Glowing:1b"),
                 Silent => node_view.push_str("Silent:1b"),
-                Size => node_view.extend(["Size:", node_view.extract(unit.value.as_id()?)]),
+                Size => node_view.extend(["Size:", node_view.extract(unit.value.as_id()?.base)]),
                 Text => {
                     node_view.push_str("text:");
                     text::translate_text(node_view, unit.value.as_text()?);
                 }
-                TpTime =>
-                    node_view.extend(["teleport_duration:", node_view.extract(unit.value.as_id()?)]),
-                Width => node_view.extend(["width:", node_view.extract(unit.value.as_id()?)]),
+                TpTime => node_view.extend([
+                    "teleport_duration:",
+                    node_view.extract(unit.value.as_id()?.base)
+                ]),
+                Width => node_view.extend(["width:", node_view.extract(unit.value.as_id()?.base)]),
 
                 _ =>
                     return Err(NeniyError::new(
@@ -551,14 +582,14 @@ fn item_data_match(
 
             sorted_match!(match other_kind {
                 TokenKind::CanBreak => node_view.extend([
-                    "can_break", separator, "{\"blocks\":\"", node_view.extract(unit.value.as_id()?), "\"}"
+                    "can_break", separator, "{\"blocks\":\"minecraft:", id::block_match(node_view, unit.value.as_id()?)?, "\"}"
                 ]),
                 TokenKind::CanPlaceOn => node_view.extend([
-                    "can_place_on", separator, "{\"blocks\":\"", node_view.extract(unit.value.as_id()?), "\"}"
+                    "can_place_on", separator, "{\"blocks\":\"minecraft:", id::block_match(node_view, unit.value.as_id()?)?, "\"}"
                 ]),
                 TokenKind::Enchantments => {
                     node_view.extend(["enchantments", separator]);
-                    translate_enchantments(node_view, unit.value.as_list()?);
+                    translate_enchantments(node_view, unit.value.as_list()?)?;
                 },
                 TokenKind::Hide => node_view.extend([
                     "tooltip_display",
@@ -574,11 +605,11 @@ fn item_data_match(
                     text::translate_text(node_view, unit.value.as_text()?);
                 },
                 TokenKind::Shine => node_view.extend(["enchantment_glint_override", separator, "1b"]),
-                TokenKind::Stack => node_view.extend(["max_stack_size", separator, node_view.extract(unit.value.as_id()?)]),
+                TokenKind::Stack => node_view.extend(["max_stack_size", separator, node_view.extract(unit.value.as_id()?.base)]),
                 TokenKind::Tag => {
                     let custom_data = if separator == "=" { "custom_data" } else { "\"minecraft:custom_data\"" };
 
-                    node_view.extend([custom_data, separator, "{tag:", node_view.extract(unit.value.as_id()?), "}"]);
+                    node_view.extend([custom_data, separator, "{tag:", node_view.extract(unit.value.as_id()?.base), "}"]);
                 },
                 TokenKind::Unbreakable => node_view.extend(["unbreakable", separator, "{}"]),
 
@@ -604,16 +635,20 @@ fn particle_data_match(node_view: &mut NodeView, unit: &DataUnit, with_comma: bo
     sorted_match!(match unit.key.kind {
         TokenKind::Block => node_view.extend([
             "block_state:",
-            node_view.extract(unit.value.as_id_with_data()?.id),
+            id::block_match(node_view, unit.value.as_id_with_data()?.id)?,
         ]),
         TokenKind::FromColor => {
             node_view.push_str("from_color:");
             aux::translate_numeric_list(node_view, unit.value.as_list()?, "f");
         }
         TokenKind::Item => {
-            node_view.extend(["item:", node_view.extract(unit.value.as_id_with_data()?.id)])
+            node_view.extend([
+                "item:",
+                id::item_match(node_view, unit.value.as_id_with_data()?.id)?,
+            ])
         }
-        TokenKind::Scale => node_view.extend(["scale:", node_view.extract(unit.value.as_id()?)]),
+        TokenKind::Scale =>
+            node_view.extend(["scale:", node_view.extract(unit.value.as_id()?.base)]),
         TokenKind::ToColor => {
             node_view.push_str("to_color:");
             aux::translate_numeric_list(node_view, unit.value.as_list()?, "f");
@@ -640,23 +675,23 @@ fn particle_data_match(node_view: &mut NodeView, unit: &DataUnit, with_comma: bo
 
 fn translate_potion_unit(node_view: &mut NodeView, unit: &SimpleUnit) -> Result<()> {
     sorted_match!(match unit.key.kind {
-        TokenKind::Potion => node_view.extend(["potion:", node_view.extract(unit.value)]),
+        TokenKind::Potion => node_view.extend(["potion:", node_view.extract(unit.value.base)]),
         TokenKind::PotionColor => {
-            node_view.extend(["custom_color:", node_view.extract(unit.value)])
+            node_view.extend(["custom_color:", node_view.extract(unit.value.base)])
         }
 
         _ => {
             return Err(NeniyError::new(
                 [
                     "unknown potion unit \"",
-                    node_view.extract(unit.value),
+                    node_view.extract(unit.value.base),
                     "\"",
                 ]
                 .concat(),
                 Translation,
                 node_view.source_code,
-                unit.value.start,
-                unit.value.end,
+                unit.value.base.start,
+                unit.value.base.end,
             ));
         }
     });
@@ -683,50 +718,52 @@ fn translate_potion_contents(
     Ok(())
 }
 
-fn translate_attribute_modifier(node_view: &mut NodeView, modifier: &SimpleUnit) {
-    let name = node_view.extract(modifier.key.base);
+fn translate_attribute_modifier(node_view: &mut NodeView, modifier: &SimpleUnit) -> Result<()> {
+    let name = id::attribute_match(node_view, modifier.key)?;
 
     node_view.extend([
         "{type:\"minecraft:",
         name,
         "\",amount:",
-        node_view.extract(modifier.value),
+        node_view.extract(modifier.value.base),
         ",operation:\"add_value\",slot:\"mainhand\",id:\"base_",
         name,
         "\"}",
     ]);
+    Ok(())
 }
 
 fn translate_attribute_modifiers(
     node_view: &mut NodeView,
     attribute_modifiers: &[SimpleUnit],
     separator: &str,
-) {
+) -> Result<()> {
     node_view.extend(["attribute_modifiers", separator, "["]);
 
     let mut iter = attribute_modifiers.iter();
-    translate_attribute_modifier(node_view, iter.next().unwrap());
+    translate_attribute_modifier(node_view, iter.next().unwrap())?;
 
     for unit in iter {
         node_view.push(',');
-        translate_attribute_modifier(node_view, unit);
+        translate_attribute_modifier(node_view, unit)?;
     }
 
     node_view.push(']');
+    Ok(())
 }
 
 // &[Text] for sign messages
 pub fn translate_block_data<'a>(
     node_view: &mut NodeView,
+    block: Token,
     units: &'a [DataUnit],
     separator: &str,
-    is_wall: bool,
 ) -> Result<Option<(&'a [Text], Index, Index)>> {
     let mut sign_msgs = None;
     let mut with_comma = false;
 
     for unit in units.iter() {
-        let msgs = block_data_match(node_view, unit, separator, with_comma, is_wall)?;
+        let msgs = block_data_match(node_view, block, unit, separator, with_comma)?;
 
         if msgs.is_none() {
             with_comma = true;
@@ -735,7 +772,7 @@ pub fn translate_block_data<'a>(
         }
     }
 
-    if is_wall {
+    if block.is_wall() {
         if with_comma {
             node_view.push(',');
         }
@@ -748,8 +785,8 @@ pub fn translate_block_data<'a>(
 
 pub fn translate_entity_data(
     node_view: &mut NodeView,
+    entity: Token,
     units: &[DataUnit],
-    is_falling_block: bool,
 ) -> Result<()> {
     let mut storage = Storage {
         attributes: Vec::new(),
@@ -760,8 +797,7 @@ pub fn translate_entity_data(
     let mut with_comma = false;
 
     for unit in units.iter() {
-        with_comma |=
-            entity_data_match(node_view, unit, &mut storage, is_falling_block, with_comma)?;
+        with_comma |= entity_data_match(node_view, entity, unit, &mut storage, with_comma)?;
     }
 
     if !storage.attributes.is_empty() {
@@ -785,7 +821,7 @@ pub fn translate_entity_data(
             node_view.push(',');
         }
 
-        translate_tags(node_view, &storage.tags);
+        translate_tags(node_view, &storage.tags)?;
         with_comma = true;
     }
     if !storage.chances.is_empty() {
@@ -832,7 +868,7 @@ pub fn translate_item_data(
             node_view.push(',');
         }
 
-        translate_attribute_modifiers(node_view, &attribute_modifiers, separator);
+        translate_attribute_modifiers(node_view, &attribute_modifiers, separator)?;
     }
 
     Ok(())

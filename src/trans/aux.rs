@@ -5,7 +5,7 @@ use sorted_code::{sorted_match, sorted_methods};
 use crate::{
     ErrorKind::Logic,
     NeniyError, Result,
-    lexic::token::BaseToken,
+    lexic::token::{BaseToken, Token},
     synt::{
         aux::ListUnit,
         data::IdWithData,
@@ -24,7 +24,7 @@ pub struct NodeView<'a> {
 
 #[sorted_methods]
 impl<'a> NodeView<'a> {
-    pub fn as_base(&self) -> Result<&'a [BaseToken]> {
+    pub fn as_base(&self) -> Result<&'a [Token]> {
         if let Node::Base { args, .. } = &self.node {
             Ok(args)
         } else {
@@ -39,7 +39,7 @@ impl<'a> NodeView<'a> {
         }
     }
 
-    pub fn as_double_selector(&self) -> Result<(&'a [BaseToken], &'a Selector, &'a Selector)> {
+    pub fn as_double_selector(&self) -> Result<(&'a [Token], &'a Selector, &'a Selector)> {
         if let Node::DoubleSelector(node) = &self.node {
             Ok((&node.args, &node.selector1, &node.selector2))
         } else {
@@ -72,7 +72,7 @@ impl<'a> NodeView<'a> {
         }
     }
 
-    pub fn as_id_with_data(&self) -> Result<(&'a [BaseToken], &'a IdWithData)> {
+    pub fn as_id_with_data(&self) -> Result<(&'a [Token], &'a IdWithData)> {
         if let Node::IdWithData {
             args,
             id_with_data_ptr,
@@ -92,7 +92,7 @@ impl<'a> NodeView<'a> {
         }
     }
 
-    pub fn as_selector(&self) -> Result<(&'a [BaseToken], &'a Selector)> {
+    pub fn as_selector(&self) -> Result<(&'a [Token], &'a Selector)> {
         if let Node::Selector { args, selector, .. } = &self.node {
             Ok((args, selector))
         } else {
@@ -107,9 +107,7 @@ impl<'a> NodeView<'a> {
         }
     }
 
-    pub fn as_selector_id_with_data(
-        &self,
-    ) -> Result<(&'a [BaseToken], &'a Selector, &'a IdWithData)> {
+    pub fn as_selector_id_with_data(&self) -> Result<(&'a [Token], &'a Selector, &'a IdWithData)> {
         if let Node::SelectorIdWithData(node) = &self.node {
             Ok((&node.args, &node.selector, &node.id_with_data_ptr))
         } else {
@@ -124,9 +122,32 @@ impl<'a> NodeView<'a> {
         }
     }
 
-    pub fn as_selector_list(&self) -> Result<(&'a [BaseToken], &'a Selector, &'a [ListUnit])> {
+    pub fn as_selector_indexing(&self) -> Result<(&'a [Token], &'a Selector, BaseToken)> {
+        if let Node::SelectorIndexing {
+            args,
+            selector,
+            indexing,
+            ..
+        } = &self.node
+        {
+            Ok((args, selector, *indexing))
+        } else {
+            Err(NeniyError {
+                msg: self.error("Selector"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
+        }
+    }
+
+    pub fn as_selector_list(
+        &self,
+    ) -> Result<(&'a [Token], &'a Selector, &'a [ListUnit], BaseToken)> {
         if let Node::SelectorList(node) = &self.node {
-            Ok((&node.args, &node.selector, &node.list))
+            Ok((&node.args, &node.selector, &node.list, node.indexing))
         } else {
             Err(NeniyError {
                 msg: self.error("SelectorList"),
@@ -139,7 +160,7 @@ impl<'a> NodeView<'a> {
         }
     }
 
-    pub fn as_selector_text(&self) -> Result<(&'a [BaseToken], &'a Selector, &'a [TextUnit])> {
+    pub fn as_selector_text(&self) -> Result<(&'a [Token], &'a Selector, &'a [TextUnit])> {
         if let Node::SelectorText(node) = &self.node {
             Ok((&node.args, &node.selector, &node.text))
         } else {
@@ -154,7 +175,7 @@ impl<'a> NodeView<'a> {
         }
     }
 
-    pub fn as_text(&self) -> Result<(&'a [BaseToken], &'a [TextUnit])> {
+    pub fn as_text(&self) -> Result<(&'a [Token], &'a [TextUnit])> {
         if let Node::Text { args, text, .. } = &self.node {
             Ok((args, text))
         } else {
@@ -175,6 +196,7 @@ impl<'a> NodeView<'a> {
             | Node::Ex { command, .. }
             | Node::IdWithData { command, .. }
             | Node::Selector { command, .. }
+            | Node::SelectorIndexing { command, .. }
             | Node::Text { command, .. } => *command,
 
             Node::DoubleSelector(node) => node.command,
@@ -213,6 +235,7 @@ impl<'a> NodeView<'a> {
             Node::IdWithData { .. } => "IdWithData",
             Node::Selector { .. } => "Selector",
             Node::SelectorIdWithData(_) => "SelectorIdWithData",
+            Node::SelectorIndexing { .. } => "SelectorIndexing",
             Node::SelectorList(_) => "SelectorList",
             Node::SelectorText(_) => "SelectorText",
             Node::Text { .. } => "Text",
@@ -251,11 +274,11 @@ pub fn translate_numeric_list(node_view: &mut NodeView, list: &[ListUnit], suffi
     node_view.push('[');
 
     let mut iter = list.iter();
-    node_view.extend([node_view.extract(iter.next().unwrap().key), suffix]);
+    node_view.extend([node_view.extract(iter.next().unwrap().key.base), suffix]);
 
     for unit in iter {
         node_view.push(',');
-        node_view.extend([node_view.extract(unit.key), suffix]);
+        node_view.extend([node_view.extract(unit.key.base), suffix]);
     }
 
     node_view.push(']');
