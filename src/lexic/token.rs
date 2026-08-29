@@ -198,16 +198,22 @@ pub enum TokenKind {
     #[sort_start] // block
     AcaciaButton,
     Air,
+    Barrier,
     Chain,
     CoalOre,
     Cobblestone,
     CobblestoneWall,
+    CopperOre,
     CrimsonButton,
     Dirt,
     Fire,
+    GoldOre,
+    Ice,
     IronBlock,
+    IronOre,
     Light,
     MagmaBlock,
+    MushroomStem,
     NetheriteBlock,
     Netherrack,
     OakButton,
@@ -219,6 +225,7 @@ pub enum TokenKind {
     WarpedButton,
     WarpedNylium,
     Water,
+    WhiteStainedGlass,
 
     #[sort_start] // data field
     Scale,
@@ -228,6 +235,11 @@ pub enum TokenKind {
 
     #[sort_start] // enchantments
     Knockback,
+    Looting,
+    Power,
+    Protection,
+    QuickCharge,
+    Sharpness,
 
     #[sort_start] // entity
     ArmorStand,
@@ -265,18 +277,24 @@ pub enum TokenKind {
     Egg,
     FireCharge,
     FlintAndSteel,
+    GoldIngot,
     IronBoots,
+    IronChestplate,
+    IronLeggings,
     IronNugget,
     IronPickaxe,
     IronSword,
     LeatherBoots,
+    LeatherChestplate,
     LeatherHelmet,
+    LeatherLeggings,
     NetherStar,
     NetheriteHoe,
     Potion,
     RawCopper,
     RawGold,
     RawIron,
+    RottenFlesh,
     Shield,
     Snowball,
     SplashPotion,
@@ -379,6 +397,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const ASH: u64 = hash(b"ash");
         const AT: u64 = hash(b"at");
         const AXIS: u64 = hash(b"axis");
+        const BARRIER: u64 = hash(b"barrier");
         const BLOCK: u64 = hash(b"block");
         const BOLD: u64 = hash(b"bold");
         const BONE: u64 = hash(b"bone");
@@ -426,13 +445,16 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const GET: u64 = hash(b"get");
         const GIVE: u64 = hash(b"give");
         const GM: u64 = hash(b"gm");
+        const GOLD_ORE: u64 = hash(b"gold_ore");
         const GREATER_OPERATOR: u64 = hash(b">");
         const HEAD: u64 = hash(b"head");
         const HEALTH: u64 = hash(b"health");
         const HEIGHT: u64 = hash(b"height");
         const HIDE: u64 = hash(b"hide");
+        const ICE: u64 = hash(b"ice");
         const ID: u64 = hash(b"id");
         const IF: u64 = hash(b"if");
+        const IRON_ORE: u64 = hash(b"iron_ore");
         const ITALIC: u64 = hash(b"italic");
         const ITEM: u64 = hash(b"item");
         const ITEMS: u64 = hash(b"items");
@@ -447,6 +469,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const LIMIT: u64 = hash(b"limit");
         const LIT: u64 = hash(b"lit");
         const LOOT: u64 = hash(b"loot");
+        const LOOTING: u64 = hash(b"looting");
         const LORE: u64 = hash(b"lore");
         const MARKER: u64 = hash(b"marker");
         const MASKED: u64 = hash(b"masked");
@@ -469,6 +492,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const PLS: u64 = hash(b"pls");
         const POS: u64 = hash(b"pos");
         const POTION: u64 = hash(b"potion");
+        const POWER: u64 = hash(b"power");
         const POWERED: u64 = hash(b"powered");
         const PTC: u64 = hash(b"ptc");
         const RANDOM: u64 = hash(b"random");
@@ -553,6 +577,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         ASH => TokenKind::Ash,
         AT => TokenKind::At,
         AXIS => TokenKind::Axis,
+        BARRIER => TokenKind::Barrier,
         BLOCK => TokenKind::Block,
         BOLD => TokenKind::Bold,
         BONE => TokenKind::Bone,
@@ -600,13 +625,16 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         GET => TokenKind::Get,
         GIVE => TokenKind::Give,
         GM => TokenKind::Gm,
+        GOLD_ORE => TokenKind::GoldOre,
         GREATER_OPERATOR => TokenKind::GreaterOperator,
         HEAD => TokenKind::Head,
         HEALTH => TokenKind::Health,
         HEIGHT => TokenKind::Height,
         HIDE => TokenKind::Hide,
+        ICE => TokenKind::Ice,
         ID => TokenKind::Id,
         IF => TokenKind::If,
+        IRON_ORE => TokenKind::IronOre,
         ITALIC => TokenKind::Italic,
         ITEM => TokenKind::Item,
         ITEMS => TokenKind::Items,
@@ -621,6 +649,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         LIMIT => TokenKind::Limit,
         LIT => TokenKind::Lit,
         LOOT => TokenKind::Loot,
+        LOOTING => TokenKind::Looting,
         LORE => TokenKind::Lore,
         MARKER => TokenKind::Marker,
         MASKED => TokenKind::Masked,
@@ -643,6 +672,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         PLS => TokenKind::Pls,
         POS => TokenKind::Pos,
         POTION => TokenKind::Potion,
+        POWER => TokenKind::Power,
         POWERED => TokenKind::Powered,
         PTC => TokenKind::Ptc,
         RANDOM => TokenKind::Random,
@@ -719,6 +749,8 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
 }
 
 pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
+    // WhiteStainedGlass
+
     sorted_match!(match token_body {
         b"acacia_button" => TokenKind::AcaciaButton,
         b"advancement" => TokenKind::Advancement,
@@ -736,6 +768,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"chest_chance" => TokenKind::ChestChance,
         b"cobblestone" => TokenKind::Cobblestone,
         b"cobblestone_wall" => TokenKind::CobblestoneWall,
+        b"copper_ore" => TokenKind::CopperOre,
         b"crimson_button" => TokenKind::CrimsonButton,
         b"crimson_nylium" => TokenKind::CrimsonNylium,
         b"dripping_lava" => TokenKind::DrippingLava,
@@ -750,6 +783,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"flint_and_steel" => TokenKind::FlintAndSteel,
         b"from_color" => TokenKind::FromColor,
         b"glow_squid_ink" => TokenKind::GlowSquidInk,
+        b"gold_ingot" => TokenKind::GoldIngot,
         b"happy_villager" => TokenKind::HappyVillager,
         b"head_chance" => TokenKind::HeadChance,
         b"hurt_time" => TokenKind::HurtTime,
@@ -759,18 +793,24 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"invulnerable" => TokenKind::Invulnerable,
         b"iron_block" => TokenKind::IronBlock,
         b"iron_boots" => TokenKind::IronBoots,
+        b"iron_chestplate" => TokenKind::IronChestplate,
+        b"iron_leggings" => TokenKind::IronLeggings,
         b"iron_nugget" => TokenKind::IronNugget,
         b"iron_pickaxe" => TokenKind::IronPickaxe,
         b"iron_sword" => TokenKind::IronSword,
         b"item_display" => TokenKind::ItemDisplay,
+        b"knockback" => TokenKind::Knockback,
         b"leather_boots" => TokenKind::LeatherBoots,
+        b"leather_chestplate" => TokenKind::LeatherChestplate,
         b"leather_helmet" => TokenKind::LeatherHelmet,
+        b"leather_leggings" => TokenKind::LeatherLeggings,
         b"left_hand" => TokenKind::LeftHand,
         b"left_hand_chance" => TokenKind::LeftHandChance,
         b"legs_chance" => TokenKind::LegsChance,
         b"loot_table" => TokenKind::LootTable,
         b"magma_block" => TokenKind::MagmaBlock,
         b"magma_cube" => TokenKind::MagmaCube,
+        b"mushroom_stem" => TokenKind::MushroomStem,
         b"name_visible" => TokenKind::NameVisible,
         b"nether_star" => TokenKind::NetherStar,
         b"netherite_block" => TokenKind::NetheriteBlock,
@@ -785,11 +825,15 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"piglin_brute" => TokenKind::PiglinBrute,
         b"potion_color" => TokenKind::PotionColor,
         b"profession" => TokenKind::Profession,
+        b"protection" => TokenKind::Protection,
+        b"quick_charge" => TokenKind::QuickCharge,
         b"raw_copper" => TokenKind::RawCopper,
         b"reverse_portal" => TokenKind::ReversePortal,
         b"right_hand" => TokenKind::RightHand,
         b"right_hand_chance" => TokenKind::RightHandChance,
+        b"rotten_flesh" => TokenKind::RottenFlesh,
         b"selected_item" => TokenKind::SelectedItem,
+        b"sharpness" => TokenKind::Sharpness,
         b"soul_flame" => TokenKind::SoulFlame,
         b"spawnpoint" => TokenKind::Spawnpoint,
         b"spectator" => TokenKind::Spectator,
@@ -807,6 +851,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"wandering_trader" => TokenKind::WanderingTrader,
         b"warped_button" => TokenKind::WarpedButton,
         b"warped_nylium" => TokenKind::WarpedNylium,
+        b"white_stained_glass" => TokenKind::WhiteStainedGlass,
         b"wooden_hoe" => TokenKind::WoodenHoe,
         b"wooden_pickaxe" => TokenKind::WoodenPickaxe,
         b"wooden_sword" => TokenKind::WoodenSword,

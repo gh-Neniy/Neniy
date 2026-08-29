@@ -39,16 +39,22 @@ sorted_fns!(
         let result = sorted_match!(match id.kind {
             AcaciaButton => "acacia_button",
             Air => "air",
+            Barrier => "barrier",
             Chain => "iron_chain",
             CoalOre => "coal_ore",
             Cobblestone => "cobblestone",
             CobblestoneWall => "cobblestone_wall",
+            CopperOre => "copper_ore",
             CrimsonButton => "crimson_button",
             Dirt => "dirt",
             Fire => "fire",
+            GoldOre => "gold_ore",
+            Ice => "ice",
             IronBlock => "iron_block",
+            IronOre => "iron_ore",
             Light => "light",
             MagmaBlock => "magma_block",
+            MushroomStem => "mushroom_stem",
             NetheriteBlock => "netherite_block",
             Netherrack => "netherrack",
             OakButton => "oak_button",
@@ -60,6 +66,7 @@ sorted_fns!(
             WarpedButton => "warped_button",
             WarpedNylium => "warped_nylium",
             Water => "water",
+            WhiteStainedGlass => "white_stained_glass",
 
             _ => return Err(unknown_id(node_view, id, "block")),
         });
@@ -88,10 +95,17 @@ sorted_fns!(
     }
 
     pub fn enchantment_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
-        let result = sorted_match!(match id.kind {
-            TokenKind::Knockback => "knockback",
+        use TokenKind::*;
 
-            _ => return Err(unknown_id(node_view, id, "entity")),
+        let result = sorted_match!(match id.kind {
+            Knockback => "knockback",
+            Looting => "looting",
+            Power => "power",
+            Protection => "protection",
+            QuickCharge => "quick_charge",
+            Sharpness => "sharpness",
+
+            _ => return Err(unknown_id(node_view, id, "enchantment")),
         });
 
         Ok(result)
@@ -109,6 +123,7 @@ sorted_fns!(
             ItemDisplay => "item_display",
             MagmaCube => "magma_cube",
             Marker => "marker",
+            MushroomStem => "mushroom_stem",
             Phantom => "phantom",
             PiglinBrute => "piglin_brute",
             Skeleton => "skeleton",
@@ -150,6 +165,7 @@ sorted_fns!(
 
         let result = sorted_match!(match id.kind {
             Arrow => "arrow",
+            Barrier => "barrier",
             BlazeRod => "blaze_rod",
             Bone => "bone",
             Book => "book",
@@ -160,21 +176,28 @@ sorted_fns!(
             Egg => "egg",
             FireCharge => "fire_charge",
             FlintAndSteel => "flint_and_steel",
+            GoldIngot => "gold_ingot",
             IronBoots => "iron_boots",
+            IronChestplate => "iron_chestplate",
+            IronLeggings => "iron_leggings",
             IronNugget => "iron_nugget",
             IronPickaxe => "iron_pickaxe",
             IronSword => "iron_sword",
             LeatherBoots => "leather_boots",
+            LeatherChestplate => "leather_chestplate",
             LeatherHelmet => "leather_helmet",
+            LeatherLeggings => "leather_leggings",
             NetherStar => "nether_star",
             NetheriteHoe => "netherite_hoe",
             Potion => "potion",
             RawCopper => "raw_copper",
             RawGold => "raw_gold",
             RawIron => "raw_iron",
+            RottenFlesh => "rotten_flesh",
             Shield => "shield",
             Snowball => "snowball",
             SplashPotion => "splash_potion",
+            StoneButton => "stone_button",
             StonePickaxe => "stone_pickaxe",
             StoneSword => "stone_sword",
             Trident => "trident",
