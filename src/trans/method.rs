@@ -752,7 +752,7 @@ fn translate_fill(node_view: &mut NodeView) -> Result<()> {
     node_view.extend([" ", node_view.extract(args[6].base)]); // mode
 
     if args.len() == 8 {
-        node_view.extend([" ", node_view.extract(args[7].base)]); // block to be replaced
+        node_view.extend([" ", id::block_match(node_view, args[7])?]); // block to be replaced
     }
 
     Ok(())

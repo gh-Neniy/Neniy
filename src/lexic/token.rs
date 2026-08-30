@@ -75,7 +75,6 @@ pub enum TokenKind {
     If,
     InGround,
     Invisible,
-    Invulnerable,
     Italic,
     Item,
     Items,
@@ -135,7 +134,6 @@ pub enum TokenKind {
     Setblock,
     Shine,
     Sign,
-    Silent,
     Size,
     Sm,
     Sort,
@@ -191,6 +189,7 @@ pub enum TokenKind {
 
     #[sort_start] // attribute
     AttackDamage,
+    AttackKnockback,
     AttackSpeed,
     MaxHealth,
     Stability,
@@ -201,11 +200,14 @@ pub enum TokenKind {
     Barrier,
     Bedrock,
     BoneBlock,
+    BrownMushroomBlock,
     Candle,
     Cauldron,
     Chain,
+    CoalBlock,
     CoalOre,
     CobbledDeepslate,
+    CobbledDeepslateSlab,
     Cobblestone,
     CobblestoneWall,
     CopperOre,
@@ -213,7 +215,9 @@ pub enum TokenKind {
     CrimsonButton,
     CrimsonDoor,
     Dirt,
+    DirtPath,
     Fire,
+    Glass,
     GoldOre,
     GrayCandle,
     Ice,
@@ -222,9 +226,11 @@ pub enum TokenKind {
     IronOre,
     Lantern,
     LapisBlock,
+    Lava,
     Light,
     MagmaBlock,
     MushroomStem,
+    Mycelium,
     NetherBrickFence,
     NetheriteBlock,
     Netherrack,
@@ -233,9 +239,13 @@ pub enum TokenKind {
     OxidizedCopper,
     PottedWitherRose,
     RawIronBlock,
+    RedMushroomBlock,
+    RedTerracotta,
+    SoulFire,
     SoulSoil,
     SpruceButton,
     SpruceLog,
+    SprucePlanks,
     SpruceWallSign,
     Stone,
     StoneButton,
@@ -248,19 +258,26 @@ pub enum TokenKind {
 
     #[sort_start] // data field
     Count,
+    Invulnerable,
+    LeftRotation,
     Scale,
+    Silent,
     Translation,
 
     #[sort_start] // effect
     Blindness,
     Invisibility,
+    Nausea,
     NightVision,
     Saturation,
+    Slowness,
+    Speed,
 
     #[sort_start] // enchantments
     Knockback,
     Looting,
     Power,
+    ProjectileProtection,
     Protection,
     QuickCharge,
     Sharpness,
@@ -275,6 +292,7 @@ pub enum TokenKind {
     Marker,
     Phantom,
     PiglinBrute,
+    Shulker,
     Skeleton,
     Stray,
     TextDisplay,
@@ -287,6 +305,7 @@ pub enum TokenKind {
     Spectator,
 
     #[sort_start] // game rule
+    KeepInventory,
     NaturalRegeneration,
 
     #[sort_start] // item
@@ -332,20 +351,24 @@ pub enum TokenKind {
     #[sort_start] // particle
     Ash,
     CampfireCosySmoke,
+    CampfireSignalSmoke,
     Cloud,
     DrippingLava,
     DustColorTransition,
     ElectricSpark,
     Enchant,
     EndRod,
+    Explosion,
     FallingWater,
     Flame,
+    Glow,
     GlowSquidInk,
     HappyVillager,
-    Lava,
+    LargeSmoke,
     ReversePortal,
     Scrape,
     Smoke,
+    Soul,
     SoulFlame,
 
     #[sort_start] // sound
@@ -354,7 +377,10 @@ pub enum TokenKind {
     AncientDebrisBreak,
     ArrowHit,
     AxeScrape,
+    AxeWaxOff,
+    BasaltBreak,
     BasaltDeltasMood,
+    BeaconActivate,
     BeaconPowerSelect,
     BellResonate,
     BellUse,
@@ -365,6 +391,7 @@ pub enum TokenKind {
     ChestOpen,
     CrimsonForestLoop,
     CrossbowLoadingEnd,
+    DeepslateBreak,
     EggThrow,
     EvokerPrepareSummon,
     ExperienceOrbPickup,
@@ -372,24 +399,35 @@ pub enum TokenKind {
     FireworkRocketBlast,
     FireworkRocketLargeBlast,
     FireworkRocketLaunch,
+    FireworkRocketTwinkle,
     GenericExplode,
+    GenericSmallFall,
     GlassBreak,
+    GlowSquidSquirt,
+    GrassBreak,
     GravelBreak,
     HuskConvertedToZombie,
+    IronPlace,
+    LanternPlace,
     LavaExtinguish,
     LightningBoltThunder,
     MinecartRiding,
+    NetherrackFall,
     NoteBlockXylophone,
+    PiglinAngry,
     PiglinBruteAmbient,
     PiglinBruteAngry,
     PlayerAttackCrit,
     PlayerLevelup,
+    PortalTravel,
     RespawnAnchorCharge,
     RespawnAnchorDeplete,
+    ShroomlightStep,
     SkeletonAmbient,
     SnowballThrow,
     SoulSandStep,
     SoulSandValleyMood,
+    StoneBreak,
     StoneButtonClickOn,
     StonePlace,
     TuffBreak,
@@ -462,9 +500,11 @@ impl Token {
             self.kind,
             Advancement
                 | Attribute
+                | Bossbar
                 | Clear
                 | Clone
                 | Damage
+                | Data
                 | Effect
                 | Ex
                 | Fill
@@ -479,17 +519,23 @@ impl Token {
                 | Ptc
                 | Random
                 | Say
+                | Scb
                 | Setblock
                 | Sm
                 | Spawnpoint
                 | Spectate
                 | Stopsound
                 | Tag
+                | Team
                 | Tellraw
                 | Time
                 | Title
                 | Tp
         )
+    }
+
+    pub fn is_tag(&self, source_code: &[u8]) -> bool {
+        source_code[self.base.start as usize] == b'#'
     }
 }
 
@@ -562,6 +608,8 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const GAMERULE: u64 = hash(b"gamerule");
         const GET: u64 = hash(b"get");
         const GIVE: u64 = hash(b"give");
+        const GLASS: u64 = hash(b"glass");
+        const GLOW: u64 = hash(b"glow");
         const GM: u64 = hash(b"gm");
         const GOLD_ORE: u64 = hash(b"gold_ore");
         const GREATER_OPERATOR: u64 = hash(b">");
@@ -595,8 +643,11 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const MAX: u64 = hash(b"max");
         const MODIFY: u64 = hash(b"modify");
         const MOVE: u64 = hash(b"move");
+        const MYCELIUM: u64 = hash(b"mycelium");
         const NAME: u64 = hash(b"name");
         const NATIVE: u64 = hash(b"native");
+        const NAUSEA: u64 = hash(b"nausea");
+        const NIGHT: u64 = hash(b"night");
         const NORMAL: u64 = hash(b"normal");
         const NORTH: u64 = hash(b"north");
         const NO_AI: u64 = hash(b"no_ai");
@@ -632,16 +683,20 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const SETBLOCK: u64 = hash(b"setblock");
         const SHIELD: u64 = hash(b"shield");
         const SHINE: u64 = hash(b"shine");
+        const SHULKER: u64 = hash(b"shulker");
         const SIGN: u64 = hash(b"sign");
         const SILENT: u64 = hash(b"silent");
         const SIZE: u64 = hash(b"size");
         const SKELETON: u64 = hash(b"skeleton");
+        const SLOWNESS: u64 = hash(b"slowness");
         const SM: u64 = hash(b"sm");
         const SMOKE: u64 = hash(b"smoke");
         const SNOWBALL: u64 = hash(b"snowball");
         const SORT: u64 = hash(b"sort");
+        const SOUL: u64 = hash(b"soul");
         const SOUTH: u64 = hash(b"south");
         const SPECTATE: u64 = hash(b"spectate");
+        const SPEED: u64 = hash(b"speed");
         const STACK: u64 = hash(b"stack");
         const STONE: u64 = hash(b"stone");
         const STORAGE: u64 = hash(b"storage");
@@ -752,6 +807,8 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         GAMERULE => Gamerule,
         GET => Get,
         GIVE => Give,
+        GLASS => Glass,
+        GLOW => Glow,
         GM => Gm,
         GOLD_ORE => GoldOre,
         GREATER_OPERATOR => GreaterOperator,
@@ -785,8 +842,11 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         MAX => Max,
         MODIFY => Modify,
         MOVE => Move,
+        MYCELIUM => Mycelium,
         NAME => Name,
         NATIVE => Native,
+        NAUSEA => Nausea,
+        NIGHT => Night,
         NORMAL => Normal,
         NORTH => North,
         NO_AI => NoAI,
@@ -822,16 +882,20 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         SETBLOCK => Setblock,
         SHIELD => Shield,
         SHINE => Shine,
+        SHULKER => Shulker,
         SIGN => Sign,
         SILENT => Silent,
         SIZE => Size,
         SKELETON => Skeleton,
+        SLOWNESS => Slowness,
         SM => Sm,
         SMOKE => Smoke,
         SNOWBALL => Snowball,
         SORT => Sort,
+        SOUL => Soul,
         SOUTH => South,
         SPECTATE => Spectate,
+        SPEED => Speed,
         STACK => Stack,
         STONE => Stone,
         STORAGE => Storage,
@@ -890,10 +954,14 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"armor_stand" => ArmorStand,
         b"arrow.hit" => ArrowHit,
         b"attack_damage" => AttackDamage,
+        b"attack_knockback" => AttackKnockback,
         b"attack_speed" => AttackSpeed,
         b"attribute" => Attribute,
         b"axe.scrape" => AxeScrape,
+        b"axe.wax_off" => AxeWaxOff,
+        b"basalt.break" => BasaltBreak,
         b"basalt_deltas.mood" => BasaltDeltasMood,
+        b"beacon.activate" => BeaconActivate,
         b"beacon.power_select" => BeaconPowerSelect,
         b"bell.resonate" => BellResonate,
         b"billboard" => Billboard,
@@ -902,14 +970,18 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"blindness" => Blindness,
         b"block_display" => BlockDisplay,
         b"bone_block" => BoneBlock,
+        b"brown_mushroom_block" => BrownMushroomBlock,
         b"bucket.empty_lava" => BucketEmptyLava,
         b"campfire_cosy_smoke" => CampfireCosySmoke,
+        b"campfire_signal_smoke" => CampfireSignalSmoke,
         b"can_break" => CanBreak,
         b"can_place_on" => CanPlaceOn,
         b"candle.extinguish" => CandleExtinguish,
         b"chest.open" => ChestOpen,
         b"chest_chance" => ChestChance,
+        b"coal_block" => CoalBlock,
         b"cobbled_deepslate" => CobbledDeepslate,
+        b"cobbled_deepslate_slab" => CobbledDeepslateSlab,
         b"cobblestone" => Cobblestone,
         b"cobblestone_wall" => CobblestoneWall,
         b"copper_ore" => CopperOre,
@@ -919,6 +991,8 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"crimson_forest.loop" => CrimsonForestLoop,
         b"crimson_nylium" => CrimsonNylium,
         b"crossbow.loading_end" => CrossbowLoadingEnd,
+        b"deepslate.break" => DeepslateBreak,
+        b"dirt_path" => DirtPath,
         b"dripping_lava" => DrippingLava,
         b"dust_color_transition" => DustColorTransition,
         b"egg.throw" => EggThrow,
@@ -926,6 +1000,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"enchantments" => Enchantments,
         b"evoker.prepare_summon" => EvokerPrepareSummon,
         b"experience_orb.pickup" => ExperienceOrbPickup,
+        b"explosion" => Explosion,
         b"falling_block" => FallingBlock,
         b"falling_water" => FallingWater,
         b"feet_chance" => FeetChance,
@@ -934,12 +1009,16 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"firework_rocket.blast" => FireworkRocketBlast,
         b"firework_rocket.large_blast" => FireworkRocketLargeBlast,
         b"firework_rocket.launch" => FireworkRocketLaunch,
+        b"firework_rocket.twinkle" => FireworkRocketTwinkle,
         b"flint_and_steel" => FlintAndSteel,
         b"from_color" => FromColor,
         b"generic.explode" => GenericExplode,
+        b"generic.small_fall" => GenericSmallFall,
         b"glass.break" => GlassBreak,
+        b"glow_squid.squirt" => GlowSquidSquirt,
         b"glow_squid_ink" => GlowSquidInk,
         b"gold_ingot" => GoldIngot,
+        b"grass.break" => GrassBreak,
         b"gravel.break" => GravelBreak,
         b"gray_candle" => GrayCandle,
         b"happy_villager" => HappyVillager,
@@ -951,6 +1030,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"invisibility" => Invisibility,
         b"invisible" => Invisible,
         b"invulnerable" => Invulnerable,
+        b"iron.place" => IronPlace,
         b"iron_bars" => IronBars,
         b"iron_block" => IronBlock,
         b"iron_boots" => IronBoots,
@@ -960,8 +1040,11 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"iron_pickaxe" => IronPickaxe,
         b"iron_sword" => IronSword,
         b"item_display" => ItemDisplay,
+        b"keep_inventory" => KeepInventory,
         b"knockback" => Knockback,
+        b"lantern.place" => LanternPlace,
         b"lapis_block" => LapisBlock,
+        b"large_smoke" => LargeSmoke,
         b"lava.extinguish" => LavaExtinguish,
         b"leather_boots" => LeatherBoots,
         b"leather_chestplate" => LeatherChestplate,
@@ -969,11 +1052,13 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"leather_leggings" => LeatherLeggings,
         b"left_hand" => LeftHand,
         b"left_hand_chance" => LeftHandChance,
+        b"left_rotation" => LeftRotation,
         b"legs_chance" => LegsChance,
         b"lightning_bolt.thunder" => LightningBoltThunder,
         b"loot_table" => LootTable,
         b"magma_block" => MagmaBlock,
         b"magma_cube" => MagmaCube,
+        b"max_health" => MaxHealth,
         b"minecart.riding" => MinecartRiding,
         b"mushroom_stem" => MushroomStem,
         b"name_visible" => NameVisible,
@@ -983,6 +1068,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"netherite_block" => NetheriteBlock,
         b"netherite_hoe" => NetheriteHoe,
         b"netherrack" => Netherrack,
+        b"netherrack.fall" => NetherrackFall,
         b"night_vision" => NightVision,
         b"no_despawn" => NoDespawn,
         b"no_gravity" => NoGravity,
@@ -992,18 +1078,23 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"oxidized_copper" => OxidizedCopper,
         b"passenger" => Passenger,
         b"pickup_delay" => PickupDelay,
+        b"piglin.angry" => PiglinAngry,
         b"piglin_brute" => PiglinBrute,
         b"piglin_brute.ambient" => PiglinBruteAmbient,
         b"piglin_brute.angry" => PiglinBruteAngry,
         b"player.attack.crit" => PlayerAttackCrit,
         b"player.levelup" => PlayerLevelup,
+        b"portal.travel" => PortalTravel,
         b"potion_color" => PotionColor,
         b"potted_wither_rose" => PottedWitherRose,
         b"profession" => Profession,
+        b"projectile_protection" => ProjectileProtection,
         b"protection" => Protection,
         b"quick_charge" => QuickCharge,
         b"raw_copper" => RawCopper,
         b"raw_iron_block" => RawIronBlock,
+        b"red_mushroom_block" => RedMushroomBlock,
+        b"red_terracotta" => RedTerracotta,
         b"respawn_anchor.charge" => RespawnAnchorCharge,
         b"respawn_anchor.deplete" => RespawnAnchorDeplete,
         b"reverse_portal" => ReversePortal,
@@ -1013,8 +1104,10 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"saturation" => Saturation,
         b"selected_item" => SelectedItem,
         b"sharpness" => Sharpness,
+        b"shroomlight.step" => ShroomlightStep,
         b"skeleton.ambient" => SkeletonAmbient,
         b"snowball.throw" => SnowballThrow,
+        b"soul_fire" => SoulFire,
         b"soul_flame" => SoulFlame,
         b"soul_sand.step" => SoulSandStep,
         b"soul_sand_valley.mood" => SoulSandValleyMood,
@@ -1024,8 +1117,10 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"splash_potion" => SplashPotion,
         b"spruce_button" => SpruceButton,
         b"spruce_log" => SpruceLog,
+        b"spruce_planks" => SprucePlanks,
         b"spruce_wall_sign" => SpruceWallSign,
         b"stability" => Stability,
+        b"stone.break" => StoneBreak,
         b"stone.place" => StonePlace,
         b"stone_button" => StoneButton,
         b"stone_button.click_on" => StoneButtonClickOn,

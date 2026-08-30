@@ -22,6 +22,7 @@ sorted_fns!(
     pub fn attribute_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
         let result = sorted_match!(match id.kind {
             AttackDamage => "attack_damage",
+            AttackKnockback => "attack_knockback",
             AttackSpeed => "attack_speed",
             MaxHealth => "max_health",
             Stability => "knockback_resistance",
@@ -34,19 +35,22 @@ sorted_fns!(
         Ok(result)
     }
 
-    pub fn block_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
+    pub fn block_match<'a>(node_view: &NodeView<'a>, id: Token) -> Result<&'a str> {
         let result = sorted_match!(match id.kind {
             AcaciaButton => "acacia_button",
             Air => "air",
             Barrier => "barrier",
             Bedrock => "bedrock",
             BoneBlock => "bone_block",
+            BrownMushroomBlock => "brown_mushroom_block",
             Candle => "candle",
             Cauldron => "cauldron",
             Chain => "iron_chain",
             Chest => "chest",
+            CoalBlock => "coal_block",
             CoalOre => "coal_ore",
             CobbledDeepslate => "cobbled_deepslate",
+            CobbledDeepslateSlab => "cobbled_deepslate_slab",
             Cobblestone => "cobblestone",
             CobblestoneWall => "cobblestone_wall",
             CopperOre => "copper_ore",
@@ -54,7 +58,9 @@ sorted_fns!(
             CrimsonButton => "crimson_button",
             CrimsonDoor => "crimson_door",
             Dirt => "dirt",
+            DirtPath => "dirt_path",
             Fire => "fire",
+            Glass => "glass",
             GoldOre => "gold_ore",
             GrayCandle => "gray_candle",
             Ice => "ice",
@@ -63,9 +69,11 @@ sorted_fns!(
             IronOre => "iron_ore",
             Lantern => "lantern",
             LapisBlock => "lapis_block",
+            Lava => "lava",
             Light => "light",
             MagmaBlock => "magma_block",
             MushroomStem => "mushroom_stem",
+            Mycelium => "mycelium",
             NetherBrickFence => "nether_brick_fence",
             NetheriteBlock => "netherite_block",
             Netherrack => "netherrack",
@@ -74,9 +82,13 @@ sorted_fns!(
             OxidizedCopper => "oxidized_copper",
             PottedWitherRose => "potted_wither_rose",
             RawIronBlock => "raw_iron_block",
+            RedMushroomBlock => "red_mushroom_block",
+            RedTerracotta => "red_terracotta",
+            SoulFire => "soul_fire",
             SoulSoil => "soul_soil",
             SpruceButton => "spruce_button",
             SpruceLog => "spruce_log",
+            SprucePlanks => "spruce_planks",
             SpruceWallSign => "spruce_wall_sign",
             Stone => "stone",
             StoneButton => "stone_button",
@@ -86,6 +98,9 @@ sorted_fns!(
             WarpedPlanks => "warped_planks",
             Water => "water",
             WhiteStainedGlass => "white_stained_glass",
+
+            #[sort_start]
+            _ if id.is_tag(node_view.source_code) => node_view.extract(id.base),
 
             _ => return Err(unknown_id(node_view, id, "block")),
         });
@@ -99,11 +114,14 @@ sorted_fns!(
             Count => "Item.count",
             Fire => "Fire",
             Health => "Health",
+            Invulnerable => "Invulnerable",
+            LeftRotation => "transformation.left_rotation",
             LootTable => "DeathLootTable",
             NameVisible => "CustomNameVisible",
             NoAI => "NoAI",
             Pos => "Pos",
             Scale => "transformation.scale",
+            Silent => "Silent",
             TpTime => "teleport_duration",
             Translation => "transformation.translation",
 
@@ -117,8 +135,11 @@ sorted_fns!(
         let result = sorted_match!(match id.kind {
             Blindness => "blindness",
             Invisibility => "invisibility",
+            Nausea => "nausea",
             NightVision => "night_vision",
             Saturation => "saturation",
+            Slowness => "slowness",
+            Speed => "speed",
 
             _ => return Err(unknown_id(node_view, id, "effect")),
         });
@@ -131,6 +152,7 @@ sorted_fns!(
             Knockback => "knockback",
             Looting => "looting",
             Power => "power",
+            ProjectileProtection => "projectile_protection",
             Protection => "protection",
             QuickCharge => "quick_charge",
             Sharpness => "sharpness",
@@ -154,6 +176,7 @@ sorted_fns!(
             MushroomStem => "mushroom_stem",
             Phantom => "phantom",
             PiglinBrute => "piglin_brute",
+            Shulker => "shulker",
             Skeleton => "skeleton",
             Stray => "stray",
             TextDisplay => "text_display",
@@ -180,6 +203,7 @@ sorted_fns!(
 
     pub fn game_rule_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
         let result = sorted_match!(match id.kind {
+            KeepInventory => "keep_inventory",
             NaturalRegeneration => "natural_health_regeneration",
 
             _ => return Err(unknown_id(node_view, id, "game rule")),
@@ -188,7 +212,7 @@ sorted_fns!(
         Ok(result)
     }
 
-    pub fn item_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
+    pub fn item_match<'a>(node_view: &NodeView<'a>, id: Token) -> Result<&'a str> {
         let result = sorted_match!(match id.kind {
             Arrow => "arrow",
             Barrier => "barrier",
@@ -209,6 +233,7 @@ sorted_fns!(
             IronNugget => "iron_nugget",
             IronPickaxe => "iron_pickaxe",
             IronSword => "iron_sword",
+            LapisBlock => "lapis_block",
             LeatherBoots => "leather_boots",
             LeatherChestplate => "leather_chestplate",
             LeatherHelmet => "leather_helmet",
@@ -232,6 +257,9 @@ sorted_fns!(
             WoodenPickaxe => "wooden_pickaxe",
             WoodenSword => "wooden_sword",
 
+            #[sort_start]
+            _ if id.is_tag(node_view.source_code) => node_view.extract(id.base),
+
             _ => return Err(unknown_id(node_view, id, "item")),
         });
 
@@ -243,21 +271,26 @@ sorted_fns!(
             Ash => "ash",
             Block => "block",
             CampfireCosySmoke => "campfire_cosy_smoke",
+            CampfireSignalSmoke => "campfire_signal_smoke",
             Cloud => "cloud",
             DrippingLava => "dripping_lava",
             DustColorTransition => "dust_color_transition",
             ElectricSpark => "electric_spark",
             Enchant => "enchant",
             EndRod => "end_rod",
+            Explosion => "explosion",
             FallingWater => "falling_water",
             Flame => "flame",
+            Glow => "glow",
             GlowSquidInk => "glow_squid_ink",
             HappyVillager => "happy_villager",
             Item => "item",
+            LargeSmoke => "large_smoke",
             Lava => "lava",
             ReversePortal => "reverse_portal",
             Scrape => "scrape",
             Smoke => "smoke",
+            Soul => "soul",
             SoulFlame => "soul_fire_flame",
 
             _ => return Err(unknown_id(node_view, id, "particle")),
@@ -273,7 +306,10 @@ sorted_fns!(
             AncientDebrisBreak => "block.ancient_debris.break",
             ArrowHit => "entity.arrow.hit",
             AxeScrape => "item.axe.scrape",
+            AxeWaxOff => "axe.wax_off",
+            BasaltBreak => "block.basalt.break",
             BasaltDeltasMood => "ambient.basalt_deltas.mood",
+            BeaconActivate => "block.beacon.activate",
             BeaconPowerSelect => "block.beacon.power_select",
             BellResonate => "block.bell.resonate",
             BellUse => "block.bell.use",
@@ -284,6 +320,7 @@ sorted_fns!(
             ChestOpen => "block.chest.open",
             CrimsonForestLoop => "ambient.crimson_forest.loop",
             CrossbowLoadingEnd => "item.crossbow.loading_end",
+            DeepslateBreak => "block.deepslate.break",
             EggThrow => "entity.egg.throw",
             EvokerPrepareSummon => "entity.evoker.prepare_summon",
             ExperienceOrbPickup => "entity.experience_orb.pickup",
@@ -291,24 +328,35 @@ sorted_fns!(
             FireworkRocketBlast => "entity.firework_rocket.blast",
             FireworkRocketLargeBlast => "entity.firework_rocket.large_blast",
             FireworkRocketLaunch => "entity.firework_rocket.launch",
+            FireworkRocketTwinkle => "entity.firework_rocket.twinkle",
             GenericExplode => "entity.generic.explode",
+            GenericSmallFall => "entity.generic.small_fall",
             GlassBreak => "block.glass.break",
+            GlowSquidSquirt => "entity.glow_squid.squirt",
+            GrassBreak => "block.grass.break",
             GravelBreak => "block.gravel.break",
             HuskConvertedToZombie => "entity.husk.converted_to_zombie",
+            IronPlace => "block.iron.place",
+            LanternPlace => "block.lantern.place",
             LavaExtinguish => "block.lava.extinguish",
             LightningBoltThunder => "entity.lightning_bolt.thunder",
             MinecartRiding => "entity.minecart.riding",
+            NetherrackFall => "block.netherrack.fall",
             NoteBlockXylophone => "block.note_block.xylophone",
+            PiglinAngry => "entity.piglin.angry",
             PiglinBruteAmbient => "entity.piglin_brute.ambient",
             PiglinBruteAngry => "entity.piglin_brute.angry",
             PlayerAttackCrit => "entity.player.attack.crit",
             PlayerLevelup => "entity.player.levelup",
+            PortalTravel => "block.portal.travel",
             RespawnAnchorCharge => "block.respawn_anchor.charge",
             RespawnAnchorDeplete => "block.respawn_anchor.deplete",
+            ShroomlightStep => "block.shroomlight.step",
             SkeletonAmbient => "entity.skeleton.ambient",
             SnowballThrow => "entity.snowball.throw",
             SoulSandStep => "block.soul_sand.step",
             SoulSandValleyMood => "ambient.soul_sand_valley.mood",
+            StoneBreak => "block.stone.break",
             StoneButtonClickOn => "block.stone_button.click_on",
             StonePlace => "block.stone.place",
             TuffBreak => "block.tuff.break",
