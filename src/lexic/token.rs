@@ -199,40 +199,63 @@ pub enum TokenKind {
     AcaciaButton,
     Air,
     Barrier,
+    Bedrock,
     BoneBlock,
+    Candle,
+    Cauldron,
     Chain,
     CoalOre,
+    CobbledDeepslate,
     Cobblestone,
     CobblestoneWall,
     CopperOre,
+    CrackedStoneBricks,
     CrimsonButton,
+    CrimsonDoor,
     Dirt,
     Fire,
     GoldOre,
+    GrayCandle,
     Ice,
+    IronBars,
     IronBlock,
     IronOre,
+    Lantern,
+    LapisBlock,
     Light,
     MagmaBlock,
     MushroomStem,
+    NetherBrickFence,
     NetheriteBlock,
     Netherrack,
     OakButton,
     OakWallSign,
+    OxidizedCopper,
+    PottedWitherRose,
+    RawIronBlock,
+    SoulSoil,
     SpruceButton,
+    SpruceLog,
+    SpruceWallSign,
     Stone,
     StoneButton,
     WallTorch,
     WarpedButton,
     WarpedNylium,
+    WarpedPlanks,
     Water,
     WhiteStainedGlass,
 
     #[sort_start] // data field
+    Count,
     Scale,
+    Translation,
 
     #[sort_start] // effect
+    Blindness,
+    Invisibility,
     NightVision,
+    Saturation,
 
     #[sort_start] // enchantments
     Knockback,
@@ -431,6 +454,43 @@ impl Token {
     pub fn is_wall(&self) -> bool {
         self.kind == TokenKind::CobblestoneWall
     }
+
+    pub fn is_command(&self) -> bool {
+        use TokenKind::*;
+
+        matches!(
+            self.kind,
+            Advancement
+                | Attribute
+                | Clear
+                | Clone
+                | Damage
+                | Effect
+                | Ex
+                | Fill
+                | Fn
+                | Gamerule
+                | Give
+                | Gm
+                | Kill
+                | Loot
+                | Native
+                | Pls
+                | Ptc
+                | Random
+                | Say
+                | Setblock
+                | Sm
+                | Spawnpoint
+                | Spectate
+                | Stopsound
+                | Tag
+                | Tellraw
+                | Time
+                | Title
+                | Tp
+        )
+    }
 }
 
 pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
@@ -449,6 +509,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const AT: u64 = hash(b"at");
         const AXIS: u64 = hash(b"axis");
         const BARRIER: u64 = hash(b"barrier");
+        const BEDROCK: u64 = hash(b"bedrock");
         const BELL_USE: u64 = hash(b"bell.use");
         const BLOCK: u64 = hash(b"block");
         const BOLD: u64 = hash(b"bold");
@@ -456,7 +517,9 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const BOOK: u64 = hash(b"book");
         const BOSSBAR: u64 = hash(b"bossbar");
         const BOW: u64 = hash(b"bow");
+        const CANDLE: u64 = hash(b"candle");
         const CARET: u64 = hash(b"^");
+        const CAULDRON: u64 = hash(b"cauldron");
         const CAVE: u64 = hash(b"cave");
         const CHAIN: u64 = hash(b"chain");
         const CHEST: u64 = hash(b"chest");
@@ -469,6 +532,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const COAL_ORE: u64 = hash(b"coal_ore");
         const COLOR: u64 = hash(b"color");
         const COMMA: u64 = hash(b",");
+        const COUNT: u64 = hash(b"count");
         const CRIT: u64 = hash(b"crit");
         const CROSSBOW: u64 = hash(b"crossbow");
         const DAMAGE: u64 = hash(b"damage");
@@ -515,6 +579,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const JOIN: u64 = hash(b"join");
         const KEEP: u64 = hash(b"keep");
         const KILL: u64 = hash(b"kill");
+        const LANTERN: u64 = hash(b"lantern");
         const LAVA: u64 = hash(b"lava");
         const LEGS: u64 = hash(b"legs");
         const LESS_OPERATOR: u64 = hash(b"<");
@@ -634,6 +699,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         AT => At,
         AXIS => Axis,
         BARRIER => Barrier,
+        BEDROCK => Bedrock,
         BELL_USE => BellUse,
         BLOCK => Block,
         BOLD => Bold,
@@ -641,7 +707,9 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         BOOK => Book,
         BOSSBAR => Bossbar,
         BOW => Bow,
+        CANDLE => Candle,
         CARET => Caret,
+        CAULDRON => Cauldron,
         CAVE => Cave,
         CHAIN => Chain,
         CHEST => Chest,
@@ -654,6 +722,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         COAL_ORE => CoalOre,
         COLOR => Color,
         COMMA => Comma,
+        COUNT => Count,
         CRIT => Crit,
         CROSSBOW => Crossbow,
         DAMAGE => Damage,
@@ -700,6 +769,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         JOIN => Join,
         KEEP => Keep,
         KILL => Kill,
+        LANTERN => Lantern,
         LAVA => Lava,
         LEGS => Legs,
         LESS_OPERATOR => LessOperator,
@@ -829,6 +899,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"billboard" => Billboard,
         b"blaze.shoot" => BlazeShoot,
         b"blaze_rod" => BlazeRod,
+        b"blindness" => Blindness,
         b"block_display" => BlockDisplay,
         b"bone_block" => BoneBlock,
         b"bucket.empty_lava" => BucketEmptyLava,
@@ -838,10 +909,13 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"candle.extinguish" => CandleExtinguish,
         b"chest.open" => ChestOpen,
         b"chest_chance" => ChestChance,
+        b"cobbled_deepslate" => CobbledDeepslate,
         b"cobblestone" => Cobblestone,
         b"cobblestone_wall" => CobblestoneWall,
         b"copper_ore" => CopperOre,
+        b"cracked_stone_bricks" => CrackedStoneBricks,
         b"crimson_button" => CrimsonButton,
+        b"crimson_door" => CrimsonDoor,
         b"crimson_forest.loop" => CrimsonForestLoop,
         b"crimson_nylium" => CrimsonNylium,
         b"crossbow.loading_end" => CrossbowLoadingEnd,
@@ -867,14 +941,17 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"glow_squid_ink" => GlowSquidInk,
         b"gold_ingot" => GoldIngot,
         b"gravel.break" => GravelBreak,
+        b"gray_candle" => GrayCandle,
         b"happy_villager" => HappyVillager,
         b"head_chance" => HeadChance,
         b"hurt_time" => HurtTime,
         b"husk.converted_to_zombie" => HuskConvertedToZombie,
         b"in_ground" => InGround,
         b"interaction" => Interaction,
+        b"invisibility" => Invisibility,
         b"invisible" => Invisible,
         b"invulnerable" => Invulnerable,
+        b"iron_bars" => IronBars,
         b"iron_block" => IronBlock,
         b"iron_boots" => IronBoots,
         b"iron_chestplate" => IronChestplate,
@@ -884,6 +961,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"iron_sword" => IronSword,
         b"item_display" => ItemDisplay,
         b"knockback" => Knockback,
+        b"lapis_block" => LapisBlock,
         b"lava.extinguish" => LavaExtinguish,
         b"leather_boots" => LeatherBoots,
         b"leather_chestplate" => LeatherChestplate,
@@ -899,15 +977,19 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"minecart.riding" => MinecartRiding,
         b"mushroom_stem" => MushroomStem,
         b"name_visible" => NameVisible,
+        b"natural_regeneration" => NaturalRegeneration,
+        b"nether_brick_fence" => NetherBrickFence,
         b"nether_star" => NetherStar,
         b"netherite_block" => NetheriteBlock,
         b"netherite_hoe" => NetheriteHoe,
         b"netherrack" => Netherrack,
+        b"night_vision" => NightVision,
         b"no_despawn" => NoDespawn,
         b"no_gravity" => NoGravity,
         b"note_block.xylophone" => NoteBlockXylophone,
         b"oak_button" => OakButton,
         b"oak_wall_sign" => OakWallSign,
+        b"oxidized_copper" => OxidizedCopper,
         b"passenger" => Passenger,
         b"pickup_delay" => PickupDelay,
         b"piglin_brute" => PiglinBrute,
@@ -916,16 +998,19 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"player.attack.crit" => PlayerAttackCrit,
         b"player.levelup" => PlayerLevelup,
         b"potion_color" => PotionColor,
+        b"potted_wither_rose" => PottedWitherRose,
         b"profession" => Profession,
         b"protection" => Protection,
         b"quick_charge" => QuickCharge,
         b"raw_copper" => RawCopper,
+        b"raw_iron_block" => RawIronBlock,
         b"respawn_anchor.charge" => RespawnAnchorCharge,
         b"respawn_anchor.deplete" => RespawnAnchorDeplete,
         b"reverse_portal" => ReversePortal,
         b"right_hand" => RightHand,
         b"right_hand_chance" => RightHandChance,
         b"rotten_flesh" => RottenFlesh,
+        b"saturation" => Saturation,
         b"selected_item" => SelectedItem,
         b"sharpness" => Sharpness,
         b"skeleton.ambient" => SkeletonAmbient,
@@ -933,10 +1018,13 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"soul_flame" => SoulFlame,
         b"soul_sand.step" => SoulSandStep,
         b"soul_sand_valley.mood" => SoulSandValleyMood,
+        b"soul_soil" => SoulSoil,
         b"spawnpoint" => Spawnpoint,
         b"spectator" => Spectator,
         b"splash_potion" => SplashPotion,
         b"spruce_button" => SpruceButton,
+        b"spruce_log" => SpruceLog,
+        b"spruce_wall_sign" => SpruceWallSign,
         b"stability" => Stability,
         b"stone.place" => StonePlace,
         b"stone_button" => StoneButton,
@@ -945,6 +1033,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"stone_sword" => StoneSword,
         b"stopsound" => Stopsound,
         b"text_display" => TextDisplay,
+        b"translation" => Translation,
         b"tuff.break" => TuffBreak,
         b"unbreakable" => Unbreakable,
         b"villager.trade" => VillagerTrade,
@@ -955,6 +1044,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"warped_button" => WarpedButton,
         b"warped_forest.mood" => WarpedForestMood,
         b"warped_nylium" => WarpedNylium,
+        b"warped_planks" => WarpedPlanks,
         b"white_stained_glass" => WhiteStainedGlass,
         b"wither.spawn" => WitherSpawn,
         b"wither_skeleton.step" => WitherSkeletonStep,

@@ -7,7 +7,7 @@ use super::{
     id, text,
 };
 use crate::{
-    ErrorKind::Translation,
+    ErrorKind::{self, Translation},
     NeniyError, Result,
     lexic::token::{Index, Token, TokenKind},
     synt::{
@@ -543,7 +543,7 @@ fn entity_data_match<'a>(
                             "\" in entity data"
                         ]
                         .concat(),
-                        Translation,
+                        ErrorKind::Translation,
                         node_view.source_code,
                         unit.key.base.start,
                         unit.key.base.end,

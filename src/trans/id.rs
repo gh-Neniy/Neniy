@@ -1,8 +1,7 @@
 use sorted_code::{sorted_fns, sorted_match};
 
 use crate::{
-    ErrorKind::Translation,
-    NeniyError, Result,
+    ErrorKind, NeniyError, Result,
     lexic::token::{Token, TokenKind},
     trans::aux::NodeView,
 };
@@ -10,7 +9,7 @@ use crate::{
 fn unknown_id(node_view: &NodeView, id: Token, id_name: &str) -> NeniyError {
     NeniyError::new(
         ["unknown ", id_name, " \"", node_view.extract(id.base), "\""].concat(),
-        Translation,
+        ErrorKind::Translation,
         node_view.source_code,
         id.base.start,
         id.base.end,
@@ -18,12 +17,14 @@ fn unknown_id(node_view: &NodeView, id: Token, id_name: &str) -> NeniyError {
 }
 
 sorted_fns!(
+    use TokenKind::*;
+
     pub fn attribute_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
         let result = sorted_match!(match id.kind {
-            TokenKind::AttackDamage => "attack_damage",
-            TokenKind::AttackSpeed => "attack_speed",
-            TokenKind::MaxHealth => "max_health",
-            TokenKind::Stability => "knockback_resistance",
+            AttackDamage => "attack_damage",
+            AttackSpeed => "attack_speed",
+            MaxHealth => "max_health",
+            Stability => "knockback_resistance",
 
             _ => {
                 return Err(unknown_id(node_view, id, "attribute"));
@@ -34,38 +35,55 @@ sorted_fns!(
     }
 
     pub fn block_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
-        use TokenKind::*;
-
         let result = sorted_match!(match id.kind {
             AcaciaButton => "acacia_button",
             Air => "air",
             Barrier => "barrier",
+            Bedrock => "bedrock",
             BoneBlock => "bone_block",
+            Candle => "candle",
+            Cauldron => "cauldron",
             Chain => "iron_chain",
+            Chest => "chest",
             CoalOre => "coal_ore",
+            CobbledDeepslate => "cobbled_deepslate",
             Cobblestone => "cobblestone",
             CobblestoneWall => "cobblestone_wall",
             CopperOre => "copper_ore",
+            CrackedStoneBricks => "cracked_stone_bricks",
             CrimsonButton => "crimson_button",
+            CrimsonDoor => "crimson_door",
             Dirt => "dirt",
             Fire => "fire",
             GoldOre => "gold_ore",
+            GrayCandle => "gray_candle",
             Ice => "ice",
+            IronBars => "iron_bars",
             IronBlock => "iron_block",
             IronOre => "iron_ore",
+            Lantern => "lantern",
+            LapisBlock => "lapis_block",
             Light => "light",
             MagmaBlock => "magma_block",
             MushroomStem => "mushroom_stem",
+            NetherBrickFence => "nether_brick_fence",
             NetheriteBlock => "netherite_block",
             Netherrack => "netherrack",
             OakButton => "oak_button",
             OakWallSign => "oak_wall_sign",
+            OxidizedCopper => "oxidized_copper",
+            PottedWitherRose => "potted_wither_rose",
+            RawIronBlock => "raw_iron_block",
+            SoulSoil => "soul_soil",
             SpruceButton => "spruce_button",
+            SpruceLog => "spruce_log",
+            SpruceWallSign => "spruce_wall_sign",
             Stone => "stone",
             StoneButton => "stone_button",
             WallTorch => "wall_torch",
             WarpedButton => "warped_button",
             WarpedNylium => "warped_nylium",
+            WarpedPlanks => "warped_planks",
             Water => "water",
             WhiteStainedGlass => "white_stained_glass",
 
@@ -77,7 +95,17 @@ sorted_fns!(
 
     pub fn data_field_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
         let result = sorted_match!(match id.kind {
-            TokenKind::Scale => "transformation.scale",
+            Block => "block_state.Name",
+            Count => "Item.count",
+            Fire => "Fire",
+            Health => "Health",
+            LootTable => "DeathLootTable",
+            NameVisible => "CustomNameVisible",
+            NoAI => "NoAI",
+            Pos => "Pos",
+            Scale => "transformation.scale",
+            TpTime => "teleport_duration",
+            Translation => "transformation.translation",
 
             _ => return Err(unknown_id(node_view, id, "data field")),
         });
@@ -87,7 +115,10 @@ sorted_fns!(
 
     pub fn effect_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
         let result = sorted_match!(match id.kind {
-            TokenKind::NightVision => "night_vision",
+            Blindness => "blindness",
+            Invisibility => "invisibility",
+            NightVision => "night_vision",
+            Saturation => "saturation",
 
             _ => return Err(unknown_id(node_view, id, "effect")),
         });
@@ -96,8 +127,6 @@ sorted_fns!(
     }
 
     pub fn enchantment_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
-        use TokenKind::*;
-
         let result = sorted_match!(match id.kind {
             Knockback => "knockback",
             Looting => "looting",
@@ -113,8 +142,6 @@ sorted_fns!(
     }
 
     pub fn entity_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
-        use TokenKind::*;
-
         let result = sorted_match!(match id.kind {
             ArmorStand => "armor_stand",
             BlockDisplay => "block_display",
@@ -142,8 +169,8 @@ sorted_fns!(
 
     pub fn game_mode_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
         let result = sorted_match!(match id.kind {
-            TokenKind::Adventure => "adventure",
-            TokenKind::Spectator => "spectator",
+            Adventure => "adventure",
+            Spectator => "spectator",
 
             _ => return Err(unknown_id(node_view, id, "game mode")),
         });
@@ -153,7 +180,7 @@ sorted_fns!(
 
     pub fn game_rule_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
         let result = sorted_match!(match id.kind {
-            TokenKind::NaturalRegeneration => "natural_health_regeneration",
+            NaturalRegeneration => "natural_health_regeneration",
 
             _ => return Err(unknown_id(node_view, id, "game rule")),
         });
@@ -162,8 +189,6 @@ sorted_fns!(
     }
 
     pub fn item_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
-        use TokenKind::*;
-
         let result = sorted_match!(match id.kind {
             Arrow => "arrow",
             Barrier => "barrier",
@@ -214,8 +239,6 @@ sorted_fns!(
     }
 
     pub fn particle_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
-        use TokenKind::*;
-
         let result = sorted_match!(match id.kind {
             Ash => "ash",
             Block => "block",
@@ -244,8 +267,6 @@ sorted_fns!(
     }
 
     pub fn sound_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
-        use TokenKind::*;
-
         let result = sorted_match!(match id.kind {
             AmethystBlockPlace => "block.amethyst_block.place",
             AmethystBlockStep => "block.amethyst_block.step",
@@ -307,7 +328,7 @@ sorted_fns!(
 
     pub fn time_match(node_view: &NodeView, id: Token) -> Result<&'static str> {
         let result = sorted_match!(match id.kind {
-            TokenKind::Night => "night",
+            Night => "night",
 
             _ => return Err(unknown_id(node_view, id, "time mode")),
         });

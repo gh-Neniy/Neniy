@@ -280,7 +280,7 @@ sorted_fns!(
         )?;
         args.push(state[0]);
 
-        if !state.exceed(1) && state[1].kind == TokenKind::Id {
+        if !state.exceed(1) && !state[1].is_command() {
             *state += 1;
             args.push(state[0]);
         }
