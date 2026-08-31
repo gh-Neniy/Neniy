@@ -276,10 +276,10 @@ fn block_data_match<'a>(
 
     sorted_match!(match unit.key.kind {
         TokenKind::East => node_view.extend(["east", separator, value_for_sides]),
-        TokenKind::Lit => node_view.extend(["lit", separator, "\"true\""]),
+        TokenKind::Lit => node_view.extend(["lit", separator, "true"]),
         TokenKind::North => node_view.extend(["north", separator, value_for_sides]),
-        TokenKind::Open => node_view.extend(["open", separator, "\"true\""]),
-        TokenKind::Powered => node_view.extend(["powered", separator, "\"true\""]),
+        TokenKind::Open => node_view.extend(["open", separator, "true"]),
+        TokenKind::Powered => node_view.extend(["powered", separator, "true"]),
         TokenKind::South => node_view.extend(["south", separator, value_for_sides]),
         TokenKind::West => node_view.extend(["west", separator, value_for_sides]),
 
@@ -474,7 +474,7 @@ fn entity_data_match<'a>(
                         ));
                     }
 
-                    let item = if entity.kind == Item {
+                    let item = if matches!(entity.kind, Item | Egg | Snowball) {
                         "Item:"
                     } else {
                         "item:"
@@ -536,7 +536,15 @@ fn entity_data_match<'a>(
                 }
                 Shine => node_view.push_str("Glowing:1b"),
                 Silent => node_view.push_str("Silent:1b"),
-                Size => node_view.extend(["Size:", node_view.extract(unit.value.as_id()?.base)]),
+                Size => {
+                    let size = if entity.kind == Phantom {
+                        "size:"
+                    } else {
+                        "Size:"
+                    };
+
+                    node_view.extend([size, node_view.extract(unit.value.as_id()?.base)]);
+                }
                 Text => {
                     node_view.push_str("text:");
                     text::translate_text(node_view, unit.value.as_text()?);

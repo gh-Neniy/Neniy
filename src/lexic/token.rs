@@ -362,6 +362,7 @@ pub enum TokenKind {
     Explosion,
     FallingWater,
     Flame,
+    Flash,
     Glow,
     GlowSquidInk,
     HappyVillager,
@@ -376,6 +377,7 @@ pub enum TokenKind {
     AmethystBlockPlace,
     AmethystBlockStep,
     AncientDebrisBreak,
+    ArmorStandBreak,
     ArrowHit,
     AxeScrape,
     AxeWaxOff,
@@ -415,6 +417,7 @@ pub enum TokenKind {
     MinecartRiding,
     NetherrackFall,
     NoteBlockXylophone,
+    PhantomAmbient,
     PiglinAngry,
     PiglinBruteAmbient,
     PiglinBruteAngry,
@@ -611,6 +614,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const FILL: u64 = hash(b"fill");
         const FIRE: u64 = hash(b"fire");
         const FLAME: u64 = hash(b"flame");
+        const FLASH: u64 = hash(b"flash");
         const FN: u64 = hash(b"fn");
         const FORCE: u64 = hash(b"force");
         const GAMERULE: u64 = hash(b"gamerule");
@@ -810,6 +814,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         FILL => Fill,
         FIRE => Fire,
         FLAME => Flame,
+        FLASH => Flash,
         FN => Fn,
         FORCE => Force,
         GAMERULE => Gamerule,
@@ -961,6 +966,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"amethyst_block.step" => AmethystBlockStep,
         b"ancient_debris.break" => AncientDebrisBreak,
         b"armor_stand" => ArmorStand,
+        b"armor_stand.break" => ArmorStandBreak,
         b"arrow.hit" => ArrowHit,
         b"attack_damage" => AttackDamage,
         b"attack_knockback" => AttackKnockback,
@@ -1087,6 +1093,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"oak_wall_sign" => OakWallSign,
         b"oxidized_copper" => OxidizedCopper,
         b"passenger" => Passenger,
+        b"phantom.ambient" => PhantomAmbient,
         b"pickup_delay" => PickupDelay,
         b"piglin.angry" => PiglinAngry,
         b"piglin_brute" => PiglinBrute,
