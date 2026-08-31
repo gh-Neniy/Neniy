@@ -427,10 +427,6 @@ fn entity_data_match<'a>(
             }
 
             sorted_match!(match other_kind {
-                About => {
-                    node_view.push_str("item:");
-                    translate_item(node_view, unit.value.as_id_with_data()?)?;
-                }
                 Billboard => {
                     node_view.extend([
                         "billboard:\"",
@@ -468,7 +464,23 @@ fn entity_data_match<'a>(
                 Invisible => node_view.push_str("Invisible:1b"),
                 Invulnerable => node_view.push_str("Invulnerable:1b"),
                 Item => {
-                    node_view.push_str("Item:");
+                    if entity.is_empty() {
+                        return Err(NeniyError::new(
+                            "\"type\" required for \"data.item\"".to_string(),
+                            ErrorKind::Translation,
+                            node_view.source_code,
+                            unit.key.base.start,
+                            unit.key.base.end,
+                        ));
+                    }
+
+                    let item = if entity.kind == Item {
+                        "Item:"
+                    } else {
+                        "item:"
+                    };
+
+                    node_view.push_str(item);
                     translate_item(node_view, unit.value.as_id_with_data()?)?;
                 }
                 LootTable => node_view.extend([

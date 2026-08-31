@@ -24,11 +24,7 @@ pub fn parse(source_code: &[u8]) -> Result<Vec<Token>> {
             continue;
         }
 
-        tokens.push(capture_token::capture_token(
-            source_code,
-            categorize::categorize(source_code[i]),
-            i,
-        )?);
+        tokens.push(capture_token::capture_token(source_code, i)?);
 
         i = tokens.last().unwrap().base.end as usize + 1;
     }

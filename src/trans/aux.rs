@@ -3,7 +3,7 @@ use std::{iter::Extend, str};
 use sorted_code::{sorted_match, sorted_methods};
 
 use crate::{
-    ErrorKind::Logic,
+    ErrorKind::{Logic, Translation},
     NeniyError, Result,
     lexic::token::{BaseToken, Token},
     synt::{
@@ -263,6 +263,24 @@ where
 
 pub fn translate_bool(cond: bool) -> &'static str {
     if cond { "true" } else { "false" }
+}
+
+pub fn translate_negation(node_view: &mut NodeView, id: Token) -> Result<()> {
+    if id.is_negation(node_view.source_code) {
+        if id.base.start == id.base.end {
+            return Err(NeniyError::new(
+                "empty negation".to_string(),
+                Translation,
+                node_view.source_code,
+                id.base.start,
+                id.base.start,
+            ));
+        }
+
+        node_view.push('!');
+    }
+
+    Ok(())
 }
 
 pub fn translate_numeric_list(node_view: &mut NodeView, list: &[ListUnit], suffix: &str) {

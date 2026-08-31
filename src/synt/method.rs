@@ -1314,7 +1314,7 @@ sorted_fns!(
         let selector = capture_entity(state, &mut args, NAME, false)?;
 
         aux::check_token(state, 1, "data-field", NAME, aux::valid_id)?;
-        capture_data_field(state, &mut args)?;
+        let indexing = capture_data_field(state, &mut args)?;
 
         aux::check_token(state, 1, "data type", NAME, aux::valid_id)?;
         args.push(state[0]);
@@ -1322,10 +1322,11 @@ sorted_fns!(
         aux::check_token(state, 1, "multiplier", NAME, aux::valid_numeric)?;
         args.push(state[0]);
 
-        Ok(Node::Selector {
+        Ok(Node::SelectorIndexing {
             args,
             command: Command::ExStoreEnt,
             selector,
+            indexing: indexing.unwrap_or(BaseToken::new_empty()),
         })
     }
 

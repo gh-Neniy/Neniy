@@ -6,7 +6,7 @@ pub fn categorize(c: u8) -> TokenCategory {
     match c {
         b'\'' => TokenCategory::String,
         b'@' => TokenCategory::Selector,
-        b'#' | b'!' => TokenCategory::Id,
+        b'#' => TokenCategory::Id,
         _ if is_special(c) => TokenCategory::Special,
         b'-' | b'0'..=b'9' => TokenCategory::Numeric,
         b'_' | b'a'..=b'z' | b'A'..=b'Z' => TokenCategory::Keyword,

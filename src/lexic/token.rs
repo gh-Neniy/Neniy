@@ -17,7 +17,6 @@ pub enum TokenCategory {
 #[sorted_enum]
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum TokenKind {
-    About,
     Add,
     Advancement,
     Align,
@@ -219,6 +218,7 @@ pub enum TokenKind {
     Fire,
     Glass,
     GoldOre,
+    Gravel,
     GrayCandle,
     Ice,
     IronBars,
@@ -284,7 +284,10 @@ pub enum TokenKind {
 
     #[sort_start] // entity
     ArmorStand,
+    Arrow,
     BlockDisplay,
+    Egg,
+    ExperienceOrb,
     FallingBlock,
     Interaction,
     ItemDisplay,
@@ -294,8 +297,10 @@ pub enum TokenKind {
     PiglinBrute,
     Shulker,
     Skeleton,
+    Snowball,
     Stray,
     TextDisplay,
+    Trident,
     Villager,
     WanderingTrader,
     Zombie,
@@ -309,7 +314,6 @@ pub enum TokenKind {
     NaturalRegeneration,
 
     #[sort_start] // item
-    Arrow,
     BlazeRod,
     Bone,
     Book,
@@ -317,7 +321,6 @@ pub enum TokenKind {
     Coal,
     CrimsonNylium,
     Crossbow,
-    Egg,
     FireCharge,
     FlintAndSteel,
     GoldIngot,
@@ -339,11 +342,9 @@ pub enum TokenKind {
     RawIron,
     RottenFlesh,
     Shield,
-    Snowball,
     SplashPotion,
     StonePickaxe,
     StoneSword,
-    Trident,
     WoodenHoe,
     WoodenPickaxe,
     WoodenSword,
@@ -485,6 +486,10 @@ impl Token {
         }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.base.is_empty() && self.kind == TokenKind::Id && self.category == TokenCategory::Id
+    }
+
     pub fn is_falling_block(&self) -> bool {
         self.kind == TokenKind::FallingBlock
     }
@@ -534,6 +539,10 @@ impl Token {
         )
     }
 
+    pub fn is_negation(&self, source_code: &[u8]) -> bool {
+        source_code[self.base.start as usize] == b'!'
+    }
+
     pub fn is_tag(&self, source_code: &[u8]) -> bool {
         source_code[self.base.start as usize] == b'#'
     }
@@ -543,7 +552,6 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
     // token_body.len() <= 8
 
     sorted_consts!(
-        const ABOUT: u64 = hash(b"about");
         const ADD: u64 = hash(b"add");
         const AIR: u64 = hash(b"air");
         const ALIGN: u64 = hash(b"align");
@@ -612,6 +620,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         const GLOW: u64 = hash(b"glow");
         const GM: u64 = hash(b"gm");
         const GOLD_ORE: u64 = hash(b"gold_ore");
+        const GRAVEL: u64 = hash(b"gravel");
         const GREATER_OPERATOR: u64 = hash(b">");
         const HEAD: u64 = hash(b"head");
         const HEALTH: u64 = hash(b"health");
@@ -742,7 +751,6 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
     use TokenKind::*;
 
     sorted_match!(match hash(token_body) {
-        ABOUT => About,
         ADD => Add,
         AIR => Air,
         ALIGN => Align,
@@ -811,6 +819,7 @@ pub fn short_token_kind(token_body: &[u8]) -> TokenKind {
         GLOW => Glow,
         GM => Gm,
         GOLD_ORE => GoldOre,
+        GRAVEL => Gravel,
         GREATER_OPERATOR => GreaterOperator,
         HEAD => Head,
         HEALTH => Health,
@@ -999,6 +1008,7 @@ pub fn long_token_kind(token_body: &[u8]) -> TokenKind {
         b"electric_spark" => ElectricSpark,
         b"enchantments" => Enchantments,
         b"evoker.prepare_summon" => EvokerPrepareSummon,
+        b"experience_orb" => ExperienceOrb,
         b"experience_orb.pickup" => ExperienceOrbPickup,
         b"explosion" => Explosion,
         b"falling_block" => FallingBlock,

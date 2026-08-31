@@ -136,7 +136,6 @@ impl DataValue {
         }
     }
 
-    #[sort_end]
     fn error(&self, tried: &str) -> String {
         let actual = match self {
             DataValue::Nothing => "Nothing",
@@ -309,8 +308,6 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
     use TokenKind::*;
 
     sorted_match!(match state[0].kind {
-        About | Block | Chest | Feet | Head | Item | LeftHand | Legs | Passenger | RightHand
-        | SelectedItem => capture_id_with_data_item(state),
         AttackDamage | AttackSpeed | ChestChance | FeetChance | HeadChance | Health | Height
         | HurtTime | LeftHandChance | LegsChance | Level | PickupDelay | PotionColor
         | RightHandChance | Size | Stability | Stack | TpTime | Width => {
@@ -318,6 +315,8 @@ fn capture_data_unit(state: &mut State) -> Result<DataUnit> {
         }
         Axis | Billboard | CanBreak | CanPlaceOn | Effect | Facing | LootTable | Potion
         | Profession | Type => capture_id_item(state),
+        Block | Chest | Feet | Head | Item | LeftHand | Legs | Passenger | RightHand
+        | SelectedItem => capture_id_with_data_item(state),
         Crit | East | Hide | InGround | Interaction | Invisible | Invulnerable | Lit | Marker
         | NameVisible | NoAI | NoDespawn | NoGravity | NoTrade | North | Open | Powered | Shine
         | Silent | South | Unbreakable | West => Ok(capture_mono_item(state)),

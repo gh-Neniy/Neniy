@@ -1,11 +1,11 @@
-use sorted_code::{sorted_enum, sorted_match};
+use sorted_code::{sorted_enum, sorted_match, sorted_methods};
 
 use super::{
-    aux::{self, List, State},
-    data::{self, DataPtr},
+    aux::{self, List, ListUnit, State},
+    data::{self, DataPtr, DataUnit},
 };
 use crate::{
-    ErrorKind::Syntax,
+    ErrorKind::{Logic, Syntax},
     NeniyError, Result,
     lexic::token::{Token, TokenKind},
 };
@@ -16,6 +16,71 @@ pub enum SelectorValue {
     Data(DataPtr),
     List(List),
     Value(Token),
+}
+
+#[sorted_methods]
+impl SelectorValue {
+    pub fn as_data(&self) -> Result<&[DataUnit]> {
+        if let SelectorValue::Data(data_ptr) = self {
+            Ok(data_ptr)
+        } else {
+            Err(NeniyError {
+                msg: self.error("Data"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
+        }
+    }
+
+    pub fn as_list(&self) -> Result<&[ListUnit]> {
+        if let SelectorValue::List(list) = self {
+            Ok(list)
+        } else {
+            Err(NeniyError {
+                msg: self.error("List"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
+        }
+    }
+
+    pub fn as_value(&self) -> Result<Token> {
+        if let SelectorValue::Value(value) = self {
+            Ok(*value)
+        } else {
+            Err(NeniyError {
+                msg: self.error("Value"),
+                kind: Logic,
+                start_row: 0,
+                start_col: 0,
+                end_row: 0,
+                end_col: 0,
+            })
+        }
+    }
+
+    fn error(&self, tried: &str) -> String {
+        let actual = match self {
+            SelectorValue::Data(_) => "Data",
+            SelectorValue::List(_) => "List",
+            SelectorValue::Value(_) => "Value",
+        };
+
+        [
+            "tried to extract SelectorValue as ",
+            tried,
+            ", but actual variant was ",
+            actual,
+            " (internal)",
+        ]
+        .concat()
+    }
 }
 
 #[derive(Debug)]
@@ -49,6 +114,7 @@ impl Selector {
     }
 }
 
+// "type" always comes last
 pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
     let kind = state[0].kind;
 
@@ -63,7 +129,9 @@ pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
     }
 
     let mut units = Vec::new();
-    *state += 2; // on first token after '['
+    let mut type_field: Option<SelectorUnit> = None;
+
+    *state += 2; // on the first token after '['
 
     while !state.is_empty() && state[0].kind != TokenKind::ClosingSquareBrace {
         if state[0].kind == TokenKind::Comma {
@@ -71,7 +139,13 @@ pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
             continue;
         }
 
-        units.push(capture_item(state)?);
+        let unit = capture_item(state)?;
+
+        if unit.key.kind == TokenKind::Type {
+            type_field = Some(unit);
+        } else {
+            units.push(unit);
+        }
 
         *state += 1;
     }
@@ -84,6 +158,10 @@ pub fn parse_selector(state: &mut State, look_ahead: bool) -> Result<Selector> {
             state[-1].base.end,
             state[-1].base.end,
         ));
+    }
+
+    if let Some(type_field) = type_field {
+        units.push(type_field);
     }
 
     Ok(Selector { kind, units })

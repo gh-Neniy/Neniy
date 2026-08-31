@@ -1,70 +1,56 @@
 use sorted_code::sorted_match;
+use std::str;
 
-use super::token::{self, Index, Token, TokenCategory, TokenKind};
+use super::{
+    categorize,
+    token::{self, Index, Token, TokenCategory, TokenKind},
+};
 use crate::{ErrorKind::Lexic, NeniyError, Result};
 
-pub fn capture_token(
-    source_code: &[u8],
-    category: TokenCategory,
-    start_pos: usize,
-) -> Result<Token> {
-    if matches!(
-        category,
-        TokenCategory::Control
-            | TokenCategory::Operator
-            | TokenCategory::Selector
-            | TokenCategory::Special
-    ) {
-        return capture_short_token(source_code, category, start_pos);
-    }
-
-    capture_long_token(source_code, category, start_pos)
-}
-
-fn capture_short_token(
-    source_code: &[u8],
-    category: TokenCategory,
-    start_pos: usize,
-) -> Result<Token> {
+pub fn capture_token(source_code: &[u8], mut start_pos: usize) -> Result<Token> {
     let start = start_pos as Index;
 
-    sorted_match!(match category {
-        TokenCategory::Control => Ok(Token::new(
-            start,
-            start,
-            token::short_token_kind(&source_code[start_pos..start_pos + 1]),
-            category,
-        )),
-        TokenCategory::Operator => Ok(capture_operator(source_code, start_pos)),
-        TokenCategory::Selector => capture_selector(source_code, start_pos),
-        TokenCategory::Special => capture_special(source_code, start_pos),
+    if source_code[start_pos] == b'!' {
+        // there is no "!=" operators
+        start_pos += 1;
+    }
 
-        _ => Err(NeniyError::new(
-            "invalid token category in capture_short_token() (internal)".to_string(),
-            Lexic,
-            source_code,
-            start,
-            start,
-        )),
-    })
+    let category = categorize::categorize(source_code[start_pos]);
+
+    let (end, kind, category) = sorted_match!(match category {
+        TokenCategory::Control => (
+            start_pos as Index,
+            token::short_token_kind(&source_code[start_pos..start_pos + 1]),
+            category
+        ),
+        TokenCategory::Operator => capture_operator(source_code, start_pos),
+        TokenCategory::Selector => capture_selector(source_code, start_pos)?,
+        TokenCategory::Special => capture_special(source_code, start_pos)?,
+
+        _ => capture_long_token(source_code, category, start_pos)?,
+    });
+
+    Ok(Token::new(start, end, kind, category))
 }
 
-fn capture_operator(source_code: &[u8], start_pos: usize) -> Token {
+fn capture_operator(source_code: &[u8], start_pos: usize) -> (Index, TokenKind, TokenCategory) {
     let mut offset = 0;
 
     if start_pos + 1 != source_code.len() && source_code[start_pos + 1] == b'=' {
         offset = 1;
     }
 
-    Token::new(
-        start_pos as Index,
+    (
         start_pos as Index + offset,
         token::short_token_kind(&source_code[start_pos..start_pos + 1 + offset as usize]),
         TokenCategory::Operator,
     )
 }
 
-fn capture_selector(source_code: &[u8], start_pos: usize) -> Result<Token> {
+fn capture_selector(
+    source_code: &[u8],
+    start_pos: usize,
+) -> Result<(Index, TokenKind, TokenCategory)> {
     let start = start_pos as Index;
 
     if start_pos + 1 == source_code.len() {
@@ -77,22 +63,24 @@ fn capture_selector(source_code: &[u8], start_pos: usize) -> Result<Token> {
         ));
     }
 
-    Ok(Token::new(
-        start,
+    Ok((
         start + 1,
         token::short_token_kind(&source_code[start_pos..start_pos + 2]),
         TokenCategory::Selector,
     ))
 }
 
-fn capture_special(source_code: &[u8], start_pos: usize) -> Result<Token> {
+fn capture_special(
+    source_code: &[u8],
+    start_pos: usize,
+) -> Result<(Index, TokenKind, TokenCategory)> {
     let start = start_pos as Index;
     let mut offset = 0;
 
     if source_code[start_pos] == b'.' {
         if start_pos + 1 == source_code.len() || source_code[start_pos + 1] != b'.' {
             return Err(NeniyError::new(
-                "@ instead of selector".to_string(),
+                "invalid range token".to_string(),
                 Lexic,
                 source_code,
                 start,
@@ -100,11 +88,10 @@ fn capture_special(source_code: &[u8], start_pos: usize) -> Result<Token> {
             ));
         }
 
-        offset += 1;
+        offset = 1;
     }
 
-    Ok(Token::new(
-        start,
+    Ok((
         start + offset,
         token::short_token_kind(&source_code[start_pos..start_pos + 1 + offset as usize]),
         TokenCategory::Special,
@@ -219,7 +206,7 @@ fn capture_long_token(
     source_code: &[u8],
     category: TokenCategory,
     start_pos: usize,
-) -> Result<Token> {
+) -> Result<(Index, TokenKind, TokenCategory)> {
     let start = start_pos as Index;
 
     let end_pos = match category {
@@ -232,8 +219,7 @@ fn capture_long_token(
 
                 match second_sym {
                     b'=' => {
-                        return Ok(Token::new(
-                            start,
+                        return Ok((
                             start + 1,
                             TokenKind::MinusEqualOperator,
                             TokenCategory::Operator,
@@ -279,8 +265,7 @@ fn capture_long_token(
     let token_body = &source_code[start_pos..=end_pos];
     let end = end_pos as Index;
 
-    Ok(Token::new(
-        start,
+    Ok((
         end,
         sorted_match!(match category {
             TokenCategory::Id => TokenKind::Id,
@@ -292,7 +277,7 @@ fn capture_long_token(
                 return Err(NeniyError::new(
                     [
                         "invalid token \"",
-                        std::str::from_utf8(token_body).unwrap(),
+                        str::from_utf8(token_body).unwrap(),
                         "\"",
                     ]
                     .concat(),

@@ -218,12 +218,16 @@ fn translate_ex_store_bossbar(node_view: &mut NodeView) -> Result<()> {
 fn translate_ex_store_ent(node_view: &mut NodeView) -> Result<()> {
     node_view.push_str("store result entity ");
 
-    let (args, selector) = node_view.as_selector()?;
+    let (args, selector, indexing) = node_view.as_selector_indexing()?;
     let current_arg = translate_player(node_view, args, selector, 0)?;
 
+    node_view.extend([" ", id::data_field_match(node_view, args[current_arg])?]);
+
+    if !indexing.is_empty() {
+        node_view.push_str(node_view.extract(indexing));
+    }
+
     node_view.extend([
-        " ",
-        node_view.extract(args[current_arg].base), // objective
         " ",
         node_view.extract(args[current_arg + 1].base), // data type
         " ",
